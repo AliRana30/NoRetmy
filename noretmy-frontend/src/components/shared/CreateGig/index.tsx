@@ -96,7 +96,10 @@ const AddJobScreen: React.FC = () => {
     });
   };
 
-  return;
+  const handleSubmit = async () => {
+    if (!title || title.trim().length < 10) {
+      showError('Title is required and must be at least 10 characters long.');
+      return;
     }
 
     if (!description || description.trim().length < 100) {
@@ -199,7 +202,7 @@ const AddJobScreen: React.FC = () => {
       }
 
       showSuccess('Gig created successfully!');
-      } catch (error) {
+    } catch (error) {
       console.error('Error posting job:', error);
       if (axios.isAxiosError(error)) {
         const message = error.response?.data?.message || 'Server returned an error.';

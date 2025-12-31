@@ -32,22 +32,27 @@ const MessageScreen: React.FC<{ route?: any }> = ({ route }) => {
   const conversationId = pathname.split('/')[2];
   const sellerId = searchParams.get('sellerId');
   // const buyerId = searchParams.get('buyerId');
-  const [buyerId, setBuyerId] = useState(null);
+  const [buyerId, setBuyerId] = useState<string | null>(null);
   const [otherUserName, setOtherUserName] = useState<string>('');
   const [currentUserAvatar, setCurrentUserAvatar] = useState<string>('');
   const [otherUserAvatar, setOtherUserAvatar] = useState<string>('');
   const [isOtherUserSeller, setIsOtherUserSeller] = useState<boolean>(false);
 
-  useEffect(() => {
-    const id = searchParams.get('buyerId')
-    setBuyerId(id)
-    const userProfilePicture = useSelector((state: RootState) => state?.auth?.user?.profilePicture);
+  const user = useSelector((state: RootState) => state?.auth?.user);
+  const userId = user?._id || user?.id;
+  const userProfilePicture = user?.profilePicture;
+
   const receiverId = userId === sellerId ? buyerId : sellerId;
 
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [pendingAttachments, setPendingAttachments] = useState<AttachmentData[]>([]);
   const [isActionsOpen, setIsActionsOpen] = useState(false);
+
+  useEffect(() => {
+    const id = searchParams.get('buyerId');
+    setBuyerId(id);
+  }, [searchParams]);
   const [isLoading, setIsLoading] = useState(true);
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
   const socketRef = useRef<any>(null);
@@ -210,14 +215,14 @@ const MessageScreen: React.FC<{ route?: any }> = ({ route }) => {
               );
             } catch (createError) {
               // Conversation might already exist, continue with message
-              }
+            }
           }
         }
 
         const response = await axios.post(
           `${BACKEND_URL}/messages/`,
-          { 
-            conversationId, 
+          {
+            conversationId,
             desc: messageText,
             attachments: attachmentsToSend.map(a => ({
               url: a.url,

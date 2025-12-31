@@ -47,7 +47,11 @@ interface SingleOrderSectionProps {
 
 type HistoryItem = {
   _id: string;
-  status: string; // Adjust this type based on the possible statusesOO
+  status: string;
+  date?: string;
+  reason?: string;
+  deliveryDescription?: string;
+  deliveryAttachments?: string[];
 };
 
 const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
@@ -211,15 +215,9 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
     }
   };
 
-  //   const  handleRequirementsSubmission =  async (requirements:string)=>{
-
-  //     try {
-  //         //         if(response.status==200){
-  //           // showToast('success', 'Requirements Submission', 'Requirements submitted successfully!');
-  //           //         }
-
-  //     } catch (error) {
-  //         formData.append('orderId', orderDetails.orderId);
+  const handleRequirementsSubmission = async (requirements: string, files: File[]) => {
+    const formData = new FormData();
+    formData.append('orderId', orderDetails.orderId);
     formData.append('requirements', requirements);
 
     // Append each file
@@ -412,7 +410,13 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
                   onSubmit={(data, files) =>
                     handleRequirementsSubmission(data, files)
                   }
-                  onClose={() => case 'requirementsSubmitted':
+                  onClose={() => { }}
+                />
+              </div>
+            )}
+          </div>
+        );
+      case 'requirementsSubmitted':
         return (
           <div className="bg-white p-6 rounded-lg border-l-4 border border-gray-300 shadow-sm hover:shadow-md transition-all">
             <h3 className="text-gray-800 font-semibold mb-4 flex items-center">
@@ -425,7 +429,11 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
             <ViewRequirements
               requirements={requirements}
               attachments={attachments}
-              onClose={() => case 'started':
+              onClose={() => { }}
+            />
+          </div>
+        );
+      case 'started':
         return (
           <div className="space-y-5">
             <div className="flex flex-col sm:flex-row gap-3 items-center">
@@ -561,7 +569,13 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
                 </h3>
                 <RequestRevision
                   onRevisionSubmit={handleRequestRevisionSubmit}
-                  onClose={() => case 'requestedRevision':
+                  onClose={() => setShowRequestRevision(false)}
+                />
+              </div>
+            )}
+          </div>
+        );
+      case 'requestedRevision':
         return (
           <div className="space-y-5">
             <div className="bg-white p-6 rounded-lg border-l-4 border border-gray-300 shadow-sm hover:shadow-md transition-all">
@@ -696,32 +710,6 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
               )
             )}
           </>
-        );
-
-        return isOrderSeller ? (
-          <div className="bg-white p-6 rounded-lg border-l-4 border border-gray-300 shadow-sm hover:shadow-md transition-all">
-            <h3 className="font-semibold text-gray-800 mb-4 flex items-center">
-              <div className="bg-gray-100 p-2 rounded-full mr-3 text-black">
-                <FaStar className="w-5 h-5" />
-              </div>
-              Buyer&apos;s Review
-            </h3>
-            <ViewReview
-              rating={reviewDetails.rating}
-              desc={reviewDetails.desc}
-            />
-          </div>
-        ) : (
-          <div className="bg-white p-6 rounded-lg border-l-4 border border-gray-300 shadow-sm hover:shadow-md transition-all">
-            <h3 className="font-semibold text-gray-800 mb-4 flex items-center">
-              <div className="bg-gray-100 p-2 rounded-full mr-3 text-black">
-                <FaStar className="w-5 h-5" />
-              </div>
-              Share Your Experience
-            </h3>
-            {/* Review need update */}
-            <Review onSubmit={handleSubmitReview} />
-          </div>
         );
       default:
         return (

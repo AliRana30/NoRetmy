@@ -8,33 +8,24 @@ import {
     FaPlusCircle,
     FaSync,
     FaComments,
-    FaExclamationCircle,
     FaClock,
     FaChevronDown,
     FaPercent,
-    FaChartLine,
     FaShieldAlt,
     FaPaperPlane,
     FaHistory,
     FaCalendarAlt,
-    FaEye,
 } from 'react-icons/fa';
 
 import { useSelector } from 'react-redux';
-// import OrderDetails from '../Actions/OrderCreated';
 import axios from 'axios';
-import OrderDetails from '../../Order-Details-Buyer/Actions/OrderCreated';
-import SubmitRequirements from '../../Order-Details-Buyer/Actions/SubmitRequirements';
 import ViewRequirements from '../../Order-Details-Buyer/Actions/ViewRequirements';
 import SubmitDelivery from '../../Order-Details-Buyer/Actions/SubmitDelivery';
 import RequestRevision from '../../Order-Details-Buyer/Actions/RequestRevision';
 import ViewReview from '../../Order-Details-Buyer/Actions/ViewReview';
-import OrderCard from '../../Order-Details-Buyer/OrderCard';
-import { Download, Milestone, Paperclip, Truck } from 'lucide-react';
-import { useCountdown } from '@/util/time';
+import { Download, Paperclip, Truck } from 'lucide-react';
 import { showError, showSuccess } from '@/util/toast';
 import ReviewForm from '../../Order-Details-Buyer/Actions/reviewSeller';
-// import SubmitDelivery from '../Actions/SubmitDelivery';
 
 interface SingleOrderSectionProps {
     sellerName: string;
@@ -43,14 +34,18 @@ interface SingleOrderSectionProps {
     orderDetails: any;
     selectedMilestone: any,
     onOperationComplete: () => void;
-    canReview : boolean;
+    canReview: boolean;
     reviewDetails: any;
 
 }
 
 type HistoryItem = {
     _id: string;
-    status: string; // Adjust this type based on the possible statusesOO
+    status: string;
+    date?: string;
+    reason?: string;
+    deliveryDescription?: string;
+    attachmentUrls?: string[];
 };
 
 const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
@@ -67,25 +62,24 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
     const [openDropdown, setOpenDropdown] = useState<string | null>(null);
     const [showRequestRevision, setShowRequestRevision] = useState(false);
     const [activeTab, setActiveTab] = useState<'order' | 'chat'>('order');
-    const { orderStatus, requirements, attachments } =
-        orderDetails;
-        const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL;
+    const { orderStatus, requirements, attachments } = orderDetails || {};
+    const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL;
 
-        let { statusHistory = [] } = selectedMilestone;
+    let { statusHistory = [] } = selectedMilestone || {};
 
-        if (canReview) {
-            const reviewStatus = { status: "waitingReview", timestamp: new Date().toISOString() };
-            statusHistory = [...statusHistory, reviewStatus];  
-        }
+    if (canReview) {
+        const reviewStatus = { status: "waitingReview", timestamp: new Date().toISOString(), _id: 'review-temp' };
+        statusHistory = [...statusHistory, reviewStatus];
+    }
 
     const [showSubmitDelivery, setShowSubmitDelivery] = useState(false);
 
     const user = useSelector((state: any) => state.auth?.user);
     const isSeller = user?.isSeller;
 
-    const statusConfig = {
+    const statusConfig: any = {
         approved: {
-            label: 'Milstone Completed',
+            label: 'Milestone Completed',
             icon: <FaCheckCircle className="w-5 h-5" />,
             color: 'text-black',
             bgColor: 'bg-gray-100',
@@ -159,7 +153,6 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
         'approved'
     ];
 
-    // Calculate progress percentage for progress bar
     const progressPercentage = useMemo(() => {
         const currentIndex = statusOrder.findIndex(
             (status) => status === orderStatus,
@@ -174,9 +167,8 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
 
     const filteredDropdownItems = useMemo(() => {
         return statusHistory
-            .map((history: HistoryItem) => {
-                const config =
-                    statusConfig[history.status as keyof typeof statusConfig];
+            .map((history: any) => {
+                const config = statusConfig[history.status];
                 return config
                     ? { ...config, status: history.status, key: history._id }
                     : null;
@@ -192,9 +184,9 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
                 data,
                 {
                     headers: {
-                        'Content-Type': 'multipart/form-data', // Set correct content type for file uploads
-                    },  
-                    withCredentials: true, 
+                        'Content-Type': 'multipart/form-data',
+                    },
+                    withCredentials: true,
                 },
             );
 
@@ -204,74 +196,36 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
             }
         } catch (error) {
             console.error('Error:', error);
+            showError("Something went wrong");
         }
     };
 
-    //   const  handleRequirementsSubmission =  async (requirements:string)=>{
-
-    //     try {
-    //         //         if(response.status==200){
-    //           // showToast('success', 'Requirements Submission', 'Requirements submitted successfully!');
-    //           //         }
-
-    //     } catch (error) {
-    //         formData.append('orderId', orderDetails.orderId);
-        formData.append('requirements', requirements);
-
-        // Append each file
-        files.forEach((file) => {
-            formData.append('files', file);
-        });
-
-        handleApiRequest('requirements-submit', formData);
-    };
-
-    const handleOrderStarted = () => {
-        // const formData = new FormData();
-        // formData.append('orderId', orderDetails.orderId);
-        handleApiRequest('start', { orderId: orderDetails.orderId });
-
-    };
-    const handleOrderSubmit = (deliveryDescription: string) =>
-        handleApiRequest('deliver', {
-            orderId: orderDetails.orderId,
-            deliveryDescription,
-        });
-    const handleAcceptDelivery = () =>
-        handleApiRequest('accept', { orderId: orderDetails.orderId });
-    const handleRequestRevisionSubmit = (reason: string) =>
-        handleApiRequest('revision-request', {
-            orderId: orderDetails.orderId,
-            reason,
-        });
-
-        const handleSubmitReview = async (rating: number, desc: string) => {
-            try {
-              const response = await axios.post(
+    const handleSubmitReview = async (rating: number, desc: string) => {
+        try {
+            const response = await axios.post(
                 `${BACKEND_URL}/reviews`,
                 {
-                  orderId: orderDetails.orderId,
-                  desc,
-                  star: rating,
+                    orderId: orderDetails.orderId,
+                    desc,
+                    star: rating,
                 },
                 {
-                  withCredentials: true,
+                    withCredentials: true,
                 }
-              );
-          
-              if(response.status==200){
-                showSuccess("Review submitted successfully!")
-              }
-            } catch (error) {
-              console.error("Something went wrong while submitting the review:", error);
-              // Optionally show an error toast
-              showError(error)
-            }
-          };
+            );
 
-    // Calculate key metrics
+            if (response.status == 200) {
+                showSuccess("Review submitted successfully!")
+                onOperationComplete();
+            }
+        } catch (error: any) {
+            console.error("Something went wrong while submitting the review:", error);
+            showError(error.response?.data?.message || "Failed to submit review");
+        }
+    };
+
     const metrics = useMemo(() => {
-        const startDate = new Date(orderDetails.createdAt);
+        const startDate = orderDetails?.createdAt ? new Date(orderDetails.createdAt) : new Date();
         const currentDate = new Date();
         const daysPassed = Math.floor(
             (currentDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
@@ -279,7 +233,7 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
 
         return {
             daysSinceCreation: daysPassed,
-            timeLeft: orderDetails.deadline
+            timeLeft: orderDetails?.deadline
                 ? Math.max(
                     0,
                     Math.floor(
@@ -290,12 +244,12 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
                 )
                 : 'N/A',
             totalRevisions: statusHistory.filter(
-                (h: HistoryItem) => h.status === 'requestedRevision',
+                (h: any) => h.status === 'requestedRevision',
             ).length,
             isLate:
-                orderDetails.deadline && new Date(orderDetails.deadline) < currentDate,
+                orderDetails?.deadline && new Date(orderDetails.deadline) < currentDate,
         };
-    }, [orderDetails, statusHistory]);
+    }, [orderDetails?.createdAt, orderDetails?.deadline, statusHistory]);
 
     const handleStart = async (
         status?: string,
@@ -311,7 +265,6 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
 
             const formData = new FormData();
 
-            // Append only provided values
             if (files && files.length > 0) {
                 files.forEach((file) => formData.append("files", file));
             }
@@ -339,11 +292,11 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
             }
         } catch (error: any) {
             console.error("Error in submitting the order!", error.response?.data || error.message);
+            showError(error.response?.data?.message || "Action failed");
         }
     };
 
     const handleDownload = (fileUrl: string, fileName: string) => {
-        // Create a temporary anchor element to trigger download
         const link = document.createElement('a');
         link.href = fileUrl;
         link.setAttribute('download', fileName);
@@ -353,7 +306,9 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
         document.body.removeChild(link);
     };
 
-    case 'requirementsSubmitted':
+    const renderActions = (status: string, currentStatusData: any) => {
+        switch (status) {
+            case 'requirementsSubmitted':
                 return (
                     <div className="bg-white p-6 rounded-lg border-l-4 border border-gray-300 shadow-sm hover:shadow-md transition-all">
                         <h3 className="text-gray-800 font-semibold mb-4 flex items-center">
@@ -366,7 +321,11 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
                         <ViewRequirements
                             requirements={requirements}
                             attachments={attachments}
-                            onClose={() => case 'started':
+                            onClose={() => { }}
+                        />
+                    </div>
+                );
+            case 'started':
                 return (
                     <div className="space-y-5">
                         <div className="flex flex-col sm:flex-row gap-3 items-center">
@@ -386,7 +345,6 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
                             )}
                         </div>
 
-                        {/* Render SubmitDelivery under the buttons when clicked */}
                         {showSubmitDelivery && (
                             <div className="mt-4">
                                 <SubmitDelivery
@@ -406,34 +364,18 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
                                 <div className="font-medium text-gray-800 mb-1">
                                     Time Remaining
                                 </div>
-                                {/* <div className="flex space-x-2 mt-2">
-
-                                            {[
-                                                { unit: 'Days', value: timeLeft.days },
-                                                { unit: 'Hours', value: timeLeft.hours },
-                                                { unit: 'Minutes', value: timeLeft.minutes },
-                                                { unit: 'Seconds', value: timeLeft.seconds }
-                                            ].map(({ unit, value }) => (
-                                                <div
-                                                    key={unit}
-                                                    className="bg-gray-100 border border-gray-200 rounded-lg flex flex-col items-center justify-center w-16 h-16 shadow-sm"
-                                                >
-                                                    <span className="text-2xl font-bold text-gray-800">{value}</span>
-                                                    <span className="text-xs text-gray-500 uppercase">{unit}</span>
-                                                </div>
-                                            ))}                                   
-                                        <span className="ml-1 text-gray-800">days</span>
-                                        {metrics.isLate && (
-                                            <span className="ml-3 bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-xs font-medium flex items-center">
-                                                <FaExclamationCircle className="mr-1" /> Overdue
-                                            </span>
-                                        )}
-                                    </div> */}
+                                <div className="text-gray-600">
+                                    {metrics.timeLeft === 'N/A' ? 'Not set' : `${metrics.timeLeft} days`}
+                                    {metrics.isLate && (
+                                        <span className="ml-3 bg-red-100 text-red-800 px-3 py-1 rounded-full text-xs font-medium">
+                                            Overdue
+                                        </span>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>
                 );
-
             case 'delivered':
                 return (
                     <div className="space-y-5">
@@ -447,45 +389,44 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
 
                             <div className="bg-gray-50 p-5 rounded-lg border border-gray-100 shadow-inner">
                                 <p className="text-gray-700 whitespace-pre-line mb-4">
-                                    {currentStatusData.deliveryDescription}
+                                    {currentStatusData?.deliveryDescription || 'No delivery message provided.'}
                                 </p>
 
-                                {/* Attachments Section */}
-                                {/* {currentStatusData.length > 0 && ( */}
-                                <div className="mt-4 border-t pt-4 border-gray-200">
-                                    <h4 className="text-sm font-semibold text-gray-600 mb-3 flex items-center">
-                                        <Paperclip className="mr-2 h-4 w-4" />
-                                        Attachments
-                                    </h4>
-                                    <div className="space-y-2">
-                                        {currentStatusData.attachmentUrls.map((fileUrl, index) => (
-                                            <div
-                                                key={index}
-                                                className="flex items-center justify-between bg-white p-3 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors group"
-                                            >
-                                                <span className="text-gray-700 truncate max-w-[70%]">
-                                                    {fileUrl.split('/').pop()} {/* Extract the file name from the URL */}
-                                                </span>
-                                                <button
-                                                    onClick={() => handleDownload(fileUrl, "Dummy File")}
-                                                    className="text-primary hover:bg-primary/10 p-2 rounded-full transition-colors"
-                                                    title="Download file"
+                                {currentStatusData?.attachmentUrls && currentStatusData.attachmentUrls.length > 0 && (
+                                    <div className="mt-4 border-t pt-4 border-gray-200">
+                                        <h4 className="text-sm font-semibold text-gray-600 mb-3 flex items-center">
+                                            <Paperclip className="mr-2 h-4 w-4" />
+                                            Attachments
+                                        </h4>
+                                        <div className="space-y-2">
+                                            {currentStatusData.attachmentUrls.map((fileUrl: string, index: number) => (
+                                                <div
+                                                    key={index}
+                                                    className="flex items-center justify-between bg-white p-3 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors group"
                                                 >
-                                                    <Download className="h-5 w-5" />
-                                                </button>
-                                            </div>
-                                        ))}
+                                                    <span className="text-gray-700 truncate max-w-[70%]">
+                                                        {fileUrl.split('/').pop()}
+                                                    </span>
+                                                    <button
+                                                        onClick={() => handleDownload(fileUrl, fileUrl.split('/').pop()!)}
+                                                        className="text-primary hover:bg-primary/10 p-2 rounded-full transition-colors"
+                                                        title="Download file"
+                                                    >
+                                                        <Download className="h-5 w-5" />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
-                                </div>
-
+                                )}
                             </div>
                         </div>
 
-                        {!isSeller && currentStatusData.status === 'delivered' && (
+                        {!isSeller && (
                             <div className="flex flex-col sm:flex-row gap-3 mt-5">
                                 <button
                                     className="flex-1 bg-gray-800 hover:bg-gray-900 transition-all text-white py-4 px-5 rounded-lg shadow-md flex items-center justify-center gap-3 font-medium"
-                                    onClick={() => handleStart("approved",)}
+                                    onClick={() => handleStart("approved")}
                                 >
                                     <FaCheckCircle className="h-5 w-5" />
                                     Accept Delivery
@@ -510,7 +451,13 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
                                 </h3>
                                 <RequestRevision
                                     onRevisionSubmit={(reason, files) => handleStart("requestedRevision", "", files, reason)}
-                                    onClose={() => case 'requestedRevision':
+                                    onClose={() => setShowRequestRevision(false)}
+                                />
+                            </div>
+                        )}
+                    </div>
+                );
+            case 'requestedRevision':
                 return (
                     <div className="space-y-5">
                         <div className="bg-white p-6 rounded-lg border-l-4 border border-gray-300 shadow-sm hover:shadow-md transition-all">
@@ -526,32 +473,33 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
                                 </p>
                             </div>
 
-                            <div className="mt-4 border-t pt-4 border-gray-200">
-                                <h4 className="text-sm font-semibold text-gray-600 mb-3 flex items-center">
-                                    <Paperclip className="mr-2 h-4 w-4" />
-                                    Attachments
-                                </h4>
-                                <div className="space-y-2">
-                                    {currentStatusData.attachmentUrls.map((fileUrl, index) => (
-                                        <div
-                                            key={index}
-                                            className="flex items-center justify-between bg-white p-3 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors group"
-                                        >
-                                            <span className="text-gray-700 truncate max-w-[70%]">
-                                                {fileUrl.split('/').pop()} {/* Extract the file name from the URL */}
-                                            </span>
-                                            <button
-                                                onClick={() => handleDownload(fileUrl, "Dummy File")}
-                                                className="text-primary hover:bg-primary/10 p-2 rounded-full transition-colors"
-                                                title="Download file"
+                            {currentStatusData?.attachmentUrls && currentStatusData.attachmentUrls.length > 0 && (
+                                <div className="mt-4 border-t pt-4 border-gray-200">
+                                    <h4 className="text-sm font-semibold text-gray-600 mb-3 flex items-center">
+                                        <Paperclip className="mr-2 h-4 w-4" />
+                                        Attachments
+                                    </h4>
+                                    <div className="space-y-2">
+                                        {currentStatusData.attachmentUrls.map((fileUrl: string, index: number) => (
+                                            <div
+                                                key={index}
+                                                className="flex items-center justify-between bg-white p-3 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors group"
                                             >
-                                                <Download className="h-5 w-5" />
-                                            </button>
-                                        </div>
-                                    ))}
+                                                <span className="text-gray-700 truncate max-w-[70%]">
+                                                    {fileUrl.split('/').pop()}
+                                                </span>
+                                                <button
+                                                    onClick={() => handleDownload(fileUrl, fileUrl.split('/').pop()!)}
+                                                    className="text-primary hover:bg-primary/10 p-2 rounded-full transition-colors"
+                                                    title="Download file"
+                                                >
+                                                    <Download className="h-5 w-5" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
-
+                            )}
                         </div>
 
                         {isSeller && (
@@ -564,7 +512,6 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
                             </button>
                         )}
 
-                        {/* Render SubmitDelivery under the buttons when clicked */}
                         {showSubmitDelivery && (
                             <div className="mt-4">
                                 <SubmitDelivery
@@ -575,7 +522,6 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
                                 />
                             </div>
                         )}
-
                     </div>
                 );
             case 'approved':
@@ -597,42 +543,42 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
                             </div>
                             <span className="text-gray-700 font-medium">Order Protected</span>
                         </div>
-
                     </div>
-
                 );
-                case 'waitingReview':
-                    return (
-                      <>
+            case 'waitingReview':
+                return (
+                    <div className="bg-white p-6 rounded-lg border-l-4 border border-gray-300 shadow-sm hover:shadow-md transition-all">
                         {reviewDetails ? (
-                          <div className="bg-white p-6 rounded-lg border-l-4 border border-gray-300 shadow-sm hover:shadow-md transition-all">
-                            <h3 className="font-semibold text-gray-800 mb-4 flex items-center">
-                              <div className="bg-gray-100 p-2 rounded-full mr-3 text-black">
-                                <FaStar className="w-5 h-5" />
-                              </div>
-                              Buyer's Review
-                            </h3>
-                            <ViewReview
-                              rating={reviewDetails.rating}
-                              desc={reviewDetails.desc}
-                            />
-                          </div>
+                            <>
+                                <h3 className="font-semibold text-gray-800 mb-4 flex items-center">
+                                    <div className="bg-gray-100 p-2 rounded-full mr-3 text-black">
+                                        <FaStar className="w-5 h-5" />
+                                    </div>
+                                    Buyer's Review
+                                </h3>
+                                <ViewReview
+                                    rating={reviewDetails.rating}
+                                    desc={reviewDetails.desc}
+                                />
+                            </>
                         ) : (
-                          !isSeller && (
-                            <div className="bg-white p-6 rounded-lg border-l-4 border border-gray-300 shadow-sm hover:shadow-md transition-all">
-                              <h3 className="font-semibold text-gray-800 mb-4 flex items-center">
-                                <div className="bg-gray-100 p-2 rounded-full mr-3 text-black">
-                                  <FaStar className="w-5 h-5" />
-                                </div>
-                                Share Your Experience
-                              </h3>
-                              <ReviewForm onSubmit={handleSubmitReview} />
-                            </div>
-                          )
+                            !isSeller && (
+                                <>
+                                    <h3 className="font-semibold text-gray-800 mb-4 flex items-center">
+                                        <div className="bg-gray-100 p-2 rounded-full mr-3 text-black">
+                                            <FaStar className="w-5 h-5" />
+                                        </div>
+                                        Share Your Experience
+                                    </h3>
+                                    <ReviewForm onSubmit={handleSubmitReview} />
+                                </>
+                            )
                         )}
-                      </>
-                    );
-
+                        {!reviewDetails && isSeller && (
+                            <p className="text-gray-500 italic">Waiting for buyer's review.</p>
+                        )}
+                    </div>
+                );
             default:
                 return (
                     <p className="text-gray-500 italic text-center p-5">
@@ -650,7 +596,7 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
                     <div className="flex-1">
                         <div className="flex items-center">
                             <h1 className="text-2xl font-bold text-gray-800">
-                                Order #{orderDetails.orderId}
+                                Order #{orderDetails?.orderId}
                             </h1>
                             <div
                                 className={`ml-4 px-3 py-1 rounded-full text-xs font-medium 
@@ -748,7 +694,7 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
                                 {filteredDropdownItems.map((item: any) => {
                                     const isOpen = openDropdown === item.key;
                                     const currentStatusData = statusHistory.find(
-                                        (history: HistoryItem) => history._id === item.key,
+                                        (history: any) => history._id === item.key,
                                     );
                                     const isCurrentStatus = item.status === orderStatus;
                                     const isCompleted =
@@ -849,80 +795,6 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
                             </div>
                         </div>
                     </div>
-
-                    {/* Key Metrics Footer with improved design */}
-                    {/* <div className="mt-10 p-5 border-t border-gray-200 bg-gradient-to-r from-indigo-50 to-indigo-100 rounded-b-lg">
-            <h3 className="text-gray-800 font-medium mb-4 flex items-center">
-              <FaChartLine className="mr-2 text-indigo-600" />
-              Order Metrics
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex items-center mb-2">
-                  <div className="p-2 rounded-md bg-indigo-100 mr-3">
-                    <FaCalendarAlt className="text-indigo-600 h-5 w-5" />
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-600">Time Elapsed</div>
-                    <div className="font-semibold text-gray-800">
-                      {metrics.daysSinceCreation} days
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex items-center mb-2">
-                  <div className="p-2 rounded-md bg-indigo-100 mr-3">
-                    <FaClock className="text-indigo-600 h-5 w-5" />
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-600">Time Remaining</div>
-                    <div
-                      className={`font-semibold ${metrics.isLate ? 'text-red-600' : 'text-gray-800'}`}
-                    >
-                      {metrics.timeLeft === 'N/A'
-                        ? 'N/A'
-                        : `${metrics.timeLeft} days`}
-                      {metrics.isLate && (
-                        <span className="ml-2 text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded-full shadow-sm">
-                          Overdue
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex items-center mb-2">
-                  <div className="p-2 rounded-md bg-indigo-100 mr-3">
-                    <FaSync className="text-indigo-600 h-5 w-5" />
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-600">Total Revisions</div>
-                    <div className="font-semibold text-gray-800">
-                      {metrics.totalRevisions}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex items-center mb-2">
-                  <div className="p-2 rounded-md bg-indigo-100 mr-3">
-                    <FaPercent className="text-indigo-600 h-5 w-5" />
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-600">Completion</div>
-                    <div className="font-semibold text-gray-800">
-                      {progressPercentage}%
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div> */}
                 </div>
             )}
 
