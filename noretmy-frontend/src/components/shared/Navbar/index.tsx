@@ -118,7 +118,7 @@ const Navbar: React.FC = () => {
           {/* Profile Header */}
           <div className="bg-gradient-to-r from-orange-500 to-orange-600 p-6">
             <div className="flex items-center space-x-4">
-              <div className="relative">
+              <div className="relative flex-shrink-0">
                 {user?.profilePicture ? (
                   <img
                     src={user.profilePicture}
@@ -132,11 +132,11 @@ const Navbar: React.FC = () => {
                 )}
                 <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-orange-400 rounded-full border-3 border-white"></div>
               </div>
-              <div className="flex-1 text-white">
-                <h2 className="text-lg font-bold">
+              <div className="flex-1 text-white min-w-0">
+                <h2 className="text-lg font-bold truncate">
                   {user?.fullName || user?.username || 'User'}
                 </h2>
-                <p className="text-sm text-orange-100">
+                <p className="text-sm text-orange-100 truncate">
                   {user?.email || ''}
                 </p>
               </div>
