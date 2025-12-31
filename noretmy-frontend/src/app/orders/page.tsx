@@ -44,7 +44,7 @@ const OrdersPage: React.FC = () => {
 
     if (filters.status !== 'All') {
       filtered = filtered.filter(
-        (order) => order.status.toLowerCase() === filters.status.toLowerCase(),
+        (order) => order.status?.toLowerCase() === filters.status?.toLowerCase(),
       );
     }
 

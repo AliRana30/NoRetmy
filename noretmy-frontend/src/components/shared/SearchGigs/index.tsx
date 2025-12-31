@@ -89,25 +89,25 @@ const SearchGigs: React.FC = () => {
     if (categorySlug) {
       // Map the slug to actual category name if it exists in our map
       const categoryName = slugToCategoryMap[categorySlug] || categorySlug;
-      
+
       // Try to find a matching category in FiverrCategories
       let matchedFilter = categoryName;
       for (const cat of FiverrCategories) {
         // Check if it matches main category
-        if (cat.name.toLowerCase() === categoryName.toLowerCase()) {
+        if (cat.name?.toLowerCase() === categoryName?.toLowerCase()) {
           matchedFilter = cat.name;
           break;
         }
         // Check if it matches any subcategory
         const matchedSubcat = cat.subcategories.find(
-          sub => sub.toLowerCase() === categoryName.toLowerCase()
+          sub => sub?.toLowerCase() === categoryName?.toLowerCase()
         );
         if (matchedSubcat) {
           matchedFilter = `${cat.name} › ${matchedSubcat}`;
           break;
         }
       }
-      
+
       if (!selectedFilters.includes(matchedFilter)) {
         setSelectedFilters([matchedFilter]);
       }
@@ -163,7 +163,7 @@ const SearchGigs: React.FC = () => {
     if (searchType === 'gigs') {
       const debounce = setTimeout(() => {
         const { categories, parsedMinBudget, parsedMaxBudget, parsedDeliveryTime } = parseFilters(selectedFilters);
-        
+
         dispatch(
           fetchGigs({
             categories: categories,
@@ -211,7 +211,7 @@ const SearchGigs: React.FC = () => {
   };
 
   const isLoading = searchType === 'gigs' ? loading : freelancerLoading;
-  
+
   // Track if we've had at least one successful load
   useEffect(() => {
     if (!loading && gigs.length >= 0) {
@@ -260,8 +260,8 @@ const SearchGigs: React.FC = () => {
           <button
             onClick={() => setSearchType('gigs')}
             className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-medium transition-all ${searchType === 'gigs'
-                ? 'bg-orange-500 text-white'
-                : 'bg-white text-slate-600 border border-slate-200 hover:border-slate-300'
+              ? 'bg-orange-500 text-white'
+              : 'bg-white text-slate-600 border border-slate-200 hover:border-slate-300'
               }`}
           >
             <Briefcase className="w-4 h-4" />
@@ -270,8 +270,8 @@ const SearchGigs: React.FC = () => {
           <button
             onClick={() => setSearchType('freelancers')}
             className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-medium transition-all ${searchType === 'freelancers'
-                ? 'bg-orange-500 text-white'
-                : 'bg-white text-slate-600 border border-slate-200 hover:border-slate-300'
+              ? 'bg-orange-500 text-white'
+              : 'bg-white text-slate-600 border border-slate-200 hover:border-slate-300'
               }`}
           >
             <Users className="w-4 h-4" />
@@ -327,75 +327,75 @@ const SearchGigs: React.FC = () => {
                 </h2>
                 <p className="text-slate-600 mb-6 max-w-md">
                   {t('search:noResults.description') || 'Try adjusting your search or filters to find what you\'re looking for.'}
-              </p>
-              <button
-                onClick={() => {
-                  setSearchText('');
-                  setSelectedFilters([]);
-                }}
-                className="px-6 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors"
-              >
-                Clear Filters
-              </button>
-            </div>
-          )
-        ) : (
-          /* Freelancers Grid */
-          freelancers.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {freelancers.map((freelancer) => (
-                <Link
-                  href={`/freelancer/${freelancer.username}`}
-                  key={freelancer._id}
-                  className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow group"
+                </p>
+                <button
+                  onClick={() => {
+                    setSearchText('');
+                    setSelectedFilters([]);
+                  }}
+                  className="px-6 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors"
                 >
-                  <div className="flex flex-col items-center text-center">
-                    <Image
-                      src={freelancer.profilePicture || '/images/placeholder-avatar.png'}
-                      alt={freelancer.fullName}
-                      width={80}
-                      height={80}
-                      className="w-20 h-20 rounded-full object-cover mb-4 group-hover:scale-105 transition-transform"
-                    />
-                    <h3 className="font-semibold text-slate-900 group-hover:text-orange-500 transition-colors">
-                      {freelancer.fullName}
-                    </h3>
-                    <p className="text-sm text-slate-500 mb-2">@{freelancer.username}</p>
-                    {freelancer.profileHeadline && (
-                      <p className="text-sm text-slate-600 line-clamp-2">
-                        {freelancer.profileHeadline}
-                      </p>
-                    )}
-                  </div>
-                </Link>
-              ))}
-            </div>
-          ) : searchText.length >= 2 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                <Users className="w-8 h-8 text-slate-400" />
+                  Clear Filters
+                </button>
               </div>
-              <h2 className="text-xl font-semibold text-slate-800 mb-2">
-                No freelancers found
-              </h2>
-              <p className="text-slate-600 mb-6 max-w-md">
-                Try searching with a different name or keyword.
-              </p>
-            </div>
+            )
           ) : (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                <Search className="w-8 h-8 text-slate-400" />
+            /* Freelancers Grid */
+            freelancers.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {freelancers.map((freelancer) => (
+                  <Link
+                    href={`/freelancer/${freelancer.username}`}
+                    key={freelancer._id}
+                    className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow group"
+                  >
+                    <div className="flex flex-col items-center text-center">
+                      <Image
+                        src={freelancer.profilePicture || '/images/placeholder-avatar.png'}
+                        alt={freelancer.fullName}
+                        width={80}
+                        height={80}
+                        className="w-20 h-20 rounded-full object-cover mb-4 group-hover:scale-105 transition-transform"
+                      />
+                      <h3 className="font-semibold text-slate-900 group-hover:text-orange-500 transition-colors">
+                        {freelancer.fullName}
+                      </h3>
+                      <p className="text-sm text-slate-500 mb-2">@{freelancer.username}</p>
+                      {freelancer.profileHeadline && (
+                        <p className="text-sm text-slate-600 line-clamp-2">
+                          {freelancer.profileHeadline}
+                        </p>
+                      )}
+                    </div>
+                  </Link>
+                ))}
               </div>
-              <h2 className="text-xl font-semibold text-slate-800 mb-2">
-                Search for freelancers
-              </h2>
-              <p className="text-slate-600 max-w-md">
-                Enter at least 2 characters to start searching for freelancers by name.
-              </p>
-            </div>
-          )
-        )}
+            ) : searchText.length >= 2 ? (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                  <Users className="w-8 h-8 text-slate-400" />
+                </div>
+                <h2 className="text-xl font-semibold text-slate-800 mb-2">
+                  No freelancers found
+                </h2>
+                <p className="text-slate-600 mb-6 max-w-md">
+                  Try searching with a different name or keyword.
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                  <Search className="w-8 h-8 text-slate-400" />
+                </div>
+                <h2 className="text-xl font-semibold text-slate-800 mb-2">
+                  Search for freelancers
+                </h2>
+                <p className="text-slate-600 max-w-md">
+                  Enter at least 2 characters to start searching for freelancers by name.
+                </p>
+              </div>
+            )
+          )}
         </ContentOverlay>
       </div>
     </div>

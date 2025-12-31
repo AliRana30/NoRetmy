@@ -1,12 +1,12 @@
 "use client"
 
 import React, { useEffect, useState } from 'react';
-import { 
-  Clock, 
-  DollarSign, 
-  Check, 
-  X, 
-  MessageCircle, 
+import {
+  Clock,
+  DollarSign,
+  Check,
+  X,
+  MessageCircle,
   ShoppingCart,
   Info
 } from 'lucide-react';
@@ -18,19 +18,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import SingleOrderSection from '../MilestoneOrderHandler';
 
 interface Milestone {
-  _id:  string;
+  _id: string;
   title: string;
   deliveryTime: string;
   amount: number;
   status: string;
   deliveryDescription: string;
   requestReason: string;
-  statusHistory : StatusHistory[]
+  statusHistory: StatusHistory[]
 }
 
 interface StatusHistory {
 
-  status : string;
+  status: string;
 }
 
 interface MilestoneOrderDisplayProps {
@@ -40,7 +40,7 @@ interface MilestoneOrderDisplayProps {
   orderDetails: any;
   reviewDetails?: any;
   milestones: Milestone[];
-  operationComplete : ()=>void
+  operationComplete: () => void
 }
 
 const MilestoneOrderDisplay: React.FC<MilestoneOrderDisplayProps> = ({
@@ -54,41 +54,41 @@ const MilestoneOrderDisplay: React.FC<MilestoneOrderDisplayProps> = ({
 }) => {
 
   const [selectedMilestone, setSelectedMilestone] = useState<Milestone | null>(
-    milestones.find(m => m.status.toLowerCase() === 'in progress') || milestones[0]
+    milestones.find(m => m.status?.toLowerCase() === 'in progress') || milestones[0]
   );
 
   useEffect(() => {
     const updatedMilestone = orderDetails?.milestones?.find(
-      (m: Milestone) => m.status.toLowerCase() === 'in progress'
+      (m: Milestone) => m.status?.toLowerCase() === 'in progress'
     ) || milestones?.[0];
-  
+
     setSelectedMilestone(updatedMilestone);
   }, [orderDetails]);
 
   // Check if all milestones have the last status as 'approved'
-const allApproved = milestones.every(m => {
-  const lastStatus = m.statusHistory?.[m.statusHistory.length - 1]?.status?.toLowerCase();
-  return lastStatus === 'approved';
-});
+  const allApproved = milestones.every(m => {
+    const lastStatus = m.statusHistory?.[m.statusHistory.length - 1]?.status?.toLowerCase();
+    return lastStatus === 'approved';
+  });
 
-// Get the last milestone ID
-const lastMilestoneId = milestones[milestones.length - 1]?._id;
-const isLastMilestone = selectedMilestone?._id === lastMilestoneId;
+  // Get the last milestone ID
+  const lastMilestoneId = milestones[milestones.length - 1]?._id;
+  const isLastMilestone = selectedMilestone?._id === lastMilestoneId;
 
-// Check if both conditions are true: all approved and selected milestone is the last one
-const canReview = allApproved && isLastMilestone;
+  // Check if both conditions are true: all approved and selected milestone is the last one
+  const canReview = allApproved && isLastMilestone;
 
-const handleMilestoneClick = (milestone: Milestone, index: number) => {
-    if (index === 0 || (milestones[index - 1] && milestones[index - 1].status.toLowerCase() === "approved")) {
+  const handleMilestoneClick = (milestone: Milestone, index: number) => {
+    if (index === 0 || (milestones[index - 1] && milestones[index - 1].status?.toLowerCase() === "approved")) {
       setSelectedMilestone(milestone);
     }
   };
 
   const getStatusVariant = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'completed': return 'default'; 
+    switch (status?.toLowerCase()) {
+      case 'completed': return 'default';
       case 'pending': return 'secondary';
-      case 'in progress': return 'outline'; 
+      case 'in progress': return 'outline';
       default: return 'destructive';
     }
   };
@@ -137,15 +137,15 @@ const handleMilestoneClick = (milestone: Milestone, index: number) => {
                 <MessageCircle className="mr-2 h-4 w-4" /> Chat
               </TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="milestones">
               <div className="space-y-4">
                 {milestones.map((milestone, index) => (
-                  <Card 
+                  <Card
                     key={milestone._id}
                     className={`cursor-pointer transition-all duration-300 
-                      ${selectedMilestone?._id === milestone._id 
-                        ? 'border-primary ring-2 ring-primary bg-primary/5' 
+                      ${selectedMilestone?._id === milestone._id
+                        ? 'border-primary ring-2 ring-primary bg-primary/5'
                         : 'border-gray-200 hover:border-primary/50'}`}
                     onClick={() => handleMilestoneClick(milestone, index)}
                   >
@@ -156,7 +156,7 @@ const handleMilestoneClick = (milestone: Milestone, index: number) => {
                           {milestone.status}
                         </Badge>
                       </div>
-                      
+
                       <div className="flex justify-between items-center text-sm">
                         <div className="flex items-center space-x-2 text-gray-600">
                           <Clock className="h-4 w-4" />
@@ -172,7 +172,7 @@ const handleMilestoneClick = (milestone: Milestone, index: number) => {
                 ))}
               </div>
             </TabsContent>
-            
+
             <TabsContent value="chat">
               <div className="text-center py-12 text-gray-500">
                 Chat functionality coming soon
@@ -187,12 +187,12 @@ const handleMilestoneClick = (milestone: Milestone, index: number) => {
               sellerImage={sellerImage}
               sellerName={sellerName}
               sellerUsername={sellerUsername}
-              orderDetails={orderDetails} 
+              orderDetails={orderDetails}
               reviewDetails={reviewDetails}
               selectedMilestone={selectedMilestone}
               onOperationComplete={operationComplete}
               canReview={canReview}
-               />
+            />
           ) : (
             <Card>
               <CardContent className="flex items-center justify-center p-12 text-gray-500">

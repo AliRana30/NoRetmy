@@ -1004,21 +1004,21 @@ const FAQScreen: React.FC = () => {
     searchQuery.trim() === ''
       ? groupedFAQs
       : Object.entries(groupedFAQs).reduce(
-          (acc, [category, categoryFaqs]) => {
-            const filtered = categoryFaqs.filter(
-              (faq) =>
-                faq.question
-                  .toLowerCase()
-                  .includes(searchQuery.toLowerCase()) ||
-                faq.answer.toLowerCase().includes(searchQuery.toLowerCase()),
-            );
-            if (filtered.length > 0) {
-              acc[category] = filtered;
-            }
-            return acc;
-          },
-          {} as Record<string, FAQ[]>,
-        );
+        (acc, [category, categoryFaqs]) => {
+          const filtered = categoryFaqs.filter(
+            (faq) =>
+              faq.question
+                ?.toLowerCase()
+                .includes(searchQuery.toLowerCase()) ||
+              faq.answer?.toLowerCase().includes(searchQuery.toLowerCase()),
+          );
+          if (filtered.length > 0) {
+            acc[category] = filtered;
+          }
+          return acc;
+        },
+        {} as Record<string, FAQ[]>,
+      );
 
   // Count total FAQs
   const totalFAQs = Object.values(filteredFAQs).reduce(
@@ -1089,19 +1089,17 @@ const FAQScreen: React.FC = () => {
                   <li key={`link-${category}`}>
                     <button
                       onClick={() => scrollToCategory(category)}
-                      className={`w-full text-left px-6 py-4 font-medium transition-colors flex items-center justify-between group ${
-                        activeCategory === category
+                      className={`w-full text-left px-6 py-4 font-medium transition-colors flex items-center justify-between group ${activeCategory === category
                           ? 'bg-blue-50 text-blue-700'
                           : 'text-gray-700 hover:bg-gray-50'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center">
                         <span
-                          className={`w-2 h-2 rounded-full mr-3 ${
-                            activeCategory === category
+                          className={`w-2 h-2 rounded-full mr-3 ${activeCategory === category
                               ? 'bg-blue-600'
                               : 'bg-gray-300'
-                          }`}
+                            }`}
                         />
                         {category}
                       </div>
