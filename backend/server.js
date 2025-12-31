@@ -1,5 +1,3 @@
-// Load environment variables first
-// Last restart: 2025-12-30T14:15:00
 require('dotenv').config({ path: require('path').join(__dirname, '.env') });
 
 // Server entry point - Restart trigger
@@ -48,16 +46,11 @@ const app = express();
 
 const allowedOrigins = [
   'http://localhost:8081', 
-  'http://localhost:3000',
   'https://noretmy-frontend.vercel.app',
   'https://www.noretmy.com',
-  'http://localhost:3001',
-  'https://noretmy-admin-panel.vercel.app',
   'https://www.api.noretmy.com',
-  'https://admin.noretmy.com',
   'https://noretmy.vercel.app',
-  'https://noretmy-admin-panel-three.vercel.app'
-
+  'https://noretmy-admin.vercel.app'
 ];
 
 const corsOptions = {
