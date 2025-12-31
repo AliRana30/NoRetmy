@@ -457,7 +457,10 @@ const deliverOrder = async (req, res) => {
           gigTitle: gig?.title || 'Your Order',
           sellerName: seller?.username || 'The freelancer',
           deliveryDescription
-        }).catch(err => }
+        }).catch(err => {
+          console.error("Error sending order delivered email:", err);
+        });
+      }
     } catch (notifError) {
       }
 
@@ -669,8 +672,12 @@ const acceptOrder = async (req, res) => {
           gigTitle: gig?.title || 'Order',
           amount: amountEarned,
           isForSeller: true
-        }).catch(err => }
+        }).catch(err => {
+          console.error("Error sending order completed email:", err);
+        });
+      }
     } catch (notifError) {
+      console.error("Error sending order completed notification:", notifError);
       }
 
     res.status(200).json({ 
