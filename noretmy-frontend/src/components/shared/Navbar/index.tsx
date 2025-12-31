@@ -251,7 +251,7 @@ const Navbar: React.FC = () => {
                 alt={t('navbar:aria.logo')}
                 width={140}
                 height={60}
-                className="h-12 sm:h-14 w-auto object-contain"
+                className="h-12 sm:h-14 w-auto max-w-[120px] sm:max-w-none object-contain"
                 priority
               />
             </Link>

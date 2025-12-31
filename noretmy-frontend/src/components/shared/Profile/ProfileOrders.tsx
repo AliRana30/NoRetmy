@@ -4,10 +4,10 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import Link from 'next/link';
 import Image from 'next/image';
-import { 
-  Clock, 
-  CheckCircle, 
-  XCircle, 
+import {
+  Clock,
+  CheckCircle,
+  XCircle,
   Loader2,
   ArrowRight,
   Package,
@@ -68,7 +68,7 @@ const ProfileOrders: React.FC<ProfileOrdersProps> = ({ isSeller }) => {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const response = await axios.get(`${BACKEND_URL}/orders/active`, {
+        const response = await axios.get(`${BACKEND_URL}/orders/userOrders`, {
           withCredentials: true,
         });
         setOrders(response.data);
@@ -108,22 +108,20 @@ const ProfileOrders: React.FC<ProfileOrdersProps> = ({ isSeller }) => {
       <div className="flex gap-4 border-b border-white/10 pb-4">
         <button
           onClick={() => setActiveTab('active')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
-            activeTab === 'active'
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'active'
               ? 'bg-orange-500 text-white'
               : 'bg-white/10 text-black hover:bg-white/20'
-          }`}
+            }`}
         >
           <Clock className="w-4 h-4" />
           Active ({activeOrders.length})
         </button>
         <button
           onClick={() => setActiveTab('completed')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
-            activeTab === 'completed'
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'completed'
               ? 'bg-orange-500 text-white'
               : 'bg-white/10 text-black hover:bg-white/20'
-          }`}
+            }`}
         >
           <CheckCircle className="w-4 h-4" />
           Completed ({completedOrders.length})
@@ -138,7 +136,7 @@ const ProfileOrders: React.FC<ProfileOrdersProps> = ({ isSeller }) => {
             No {activeTab} orders
           </h3>
           <p className="text-slate-400">
-            {activeTab === 'active' 
+            {activeTab === 'active'
               ? "You don't have any active orders at the moment."
               : "You haven't completed any orders yet."}
           </p>
@@ -209,7 +207,7 @@ const ProfileOrders: React.FC<ProfileOrdersProps> = ({ isSeller }) => {
                       {order.progress > 0 && order.status !== 'completed' && (
                         <div className="flex items-center gap-2">
                           <div className="w-20 h-2 bg-slate-600 rounded-full overflow-hidden">
-                            <div 
+                            <div
                               className="h-full bg-orange-500 rounded-full"
                               style={{ width: `${order.progress}%` }}
                             />

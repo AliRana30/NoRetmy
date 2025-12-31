@@ -43,7 +43,7 @@ const getNavigationItems = (isSeller: boolean, t: any) => {
     { id: 'portfolio', label: t('profile:sidebar.nav.portfolio', 'Portfolio'), icon: FolderOpen, sellerOnly: true },
     { id: 'reviews', label: t('profile:sidebar.nav.reviews', 'Reviews'), icon: Star },
     { id: 'earnings', label: t('profile:sidebar.nav.earnings', 'Earnings'), icon: DollarSign, sellerOnly: true },
-    { id: 'settings', label: t('profile:sidebar.nav.settings', 'Settings'), icon: Settings, href: '/settings' },
+
   ];
 
   return items.filter(item => !item.sellerOnly || isSeller);
@@ -160,8 +160,8 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
                   key={item.id}
                   onClick={() => handleNavClick(item)}
                   className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-all duration-200 ${isActive
-                      ? 'bg-orange-50 text-orange-600 font-semibold border-l-3 border-orange-500'
-                      : 'text-slate-600 hover:bg-gray-50 hover:text-slate-900 border-l-3 border-transparent'
+                    ? 'bg-orange-50 text-orange-600 font-semibold border-l-3 border-orange-500'
+                    : 'text-slate-600 hover:bg-gray-50 hover:text-slate-900 border-l-3 border-transparent'
                     }`}
                 >
                   <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-orange-500' : 'text-slate-400'}`} />
