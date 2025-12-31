@@ -1,8 +1,72 @@
 import DriveFolderUploadOutlinedIcon from "@mui/icons-material/DriveFolderUploadOutlined";
 import { useState } from "react";
+import axios from "axios";
+import { API_CONFIG, getAuthHeaders } from "../../config/api";
+import { toast } from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
 
-const New = ({ inputs, title }) => {
+const New = ({ inputs, title, apiEndpoint }) => {
   const [file, setFile] = useState("");
+  const [info, setInfo] = useState({});
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const handleChange = (e) => {
+    setInfo((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handleClick = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    
+    // Check if endpoint is provided
+    if (!apiEndpoint) {
+      toast.error("API endpoint not configured for this action");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      let newUser = { ...info };
+
+      // Handle file upload if exists (assuming backend handles it or we upload to Cloudinary first)
+      if (file) {
+        const data = new FormData();
+        data.append("file", file);
+        data.append("upload_preset", "upload"); // Replace with your cloudinary preset
+        try {
+          const uploadRes = await axios.post(
+            "https://api.cloudinary.com/v1_1/your_cloud_name/image/upload",
+            data
+          );
+          const { url } = uploadRes.data;
+          newUser.img = url;
+        } catch (err) {
+            console.log("Image upload failed, continuing without image");
+        }
+      }
+
+      // If we are creating a user, make sure required fields are present
+      if (apiEndpoint.includes('auth/signup')) {
+          newUser = {
+              ...newUser,
+              isSeller: false, // Default to client if created from admin
+          };
+      }
+
+      await axios.post(`${API_CONFIG.BASE_URL}${apiEndpoint}`, newUser, {
+          headers: getAuthHeaders()
+      });
+      
+      toast.success("Successfully created!");
+      navigate(-1); // Go back
+    } catch (err) {
+      console.log(err);
+      toast.error(err.response?.data?.message || "Something went wrong!");
+    } finally {
+        setLoading(false);
+    }
+  };
 
   return (
     <div className="w-full">
@@ -40,17 +104,21 @@ const New = ({ inputs, title }) => {
                 <div className="w-full md:w-[48%] space-y-2" key={input.id}>
                   <label className="block text-sm font-semibold text-gray-700">{input.label}</label>
                   <input 
+                    onChange={handleChange}
                     type={input.type} 
+                    name={input.name} // Added name prop
                     placeholder={input.placeholder}
                     className="w-full h-11 px-4 border-2 border-gray-200 rounded-xl transition-all duration-200 focus:outline-none focus:ring-0 focus:border-amber-500 hover:border-gray-300"
                   />
                 </div>
               ))}
               <button 
+                onClick={handleClick}
                 type="submit"
-                className="w-full md:w-auto px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-semibold transition-colors mt-4"
+                disabled={loading}
+                className="w-full md:w-auto px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-semibold transition-colors mt-4 disabled:opacity-50"
               >
-                Send
+                {loading ? "Sending..." : "Send"}
               </button>
             </form>
           </div>

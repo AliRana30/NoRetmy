@@ -179,7 +179,7 @@ const FreelancerProfileContent = () => {
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
           <div className="px-6 pb-6">
-            <div className="flex flex-col md:flex-row md:items-end gap-4 -mt-4">
+            <div className="flex flex-col md:flex-row md:items-end gap-x-6 gap-y-4 -mt-10 md:-mt-12 relative z-10 px-2">
               {/* Profile Picture */}
               <div className="relative">
                 <Image
@@ -481,7 +481,7 @@ const FreelancerProfileContent = () => {
                       <div className="flex items-start gap-4">
                         <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center">
                           <span className="text-slate-600 font-medium">
-                            {review.user.fullName.charAt(0).toUpperCase()}
+                            {review.user?.fullName?.charAt(0).toUpperCase() || '?'}
                           </span>
                         </div>
                         <div className="flex-1">

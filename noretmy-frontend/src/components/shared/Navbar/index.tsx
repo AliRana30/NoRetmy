@@ -112,7 +112,7 @@ const Navbar: React.FC = () => {
 
         {/* Modal */}
         <div
-          className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden"
+          className="relative bg-white rounded-3xl shadow-2xl w-full max-w-[calc(100vw-2rem)] sm:max-w-sm overflow-hidden transform transition-all duration-300"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Profile Header */}

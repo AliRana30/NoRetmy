@@ -165,7 +165,7 @@ const NotificationBell: React.FC = () => {
 
             {/* Notification Dropdown Modal */}
             {isOpen && (
-                <div className="absolute right-0 mt-2 w-96 max-h-[500px] bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden z-50">
+                <div className="absolute right-0 sm:right-[-10px] md:right-0 mt-3 w-[calc(100vw-2rem)] sm:w-96 max-w-[calc(100vw-1rem)] max-h-[500px] bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50 transform origin-top-right transition-all duration-200">
                     {/* Header */}
                     <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-orange-50 to-white">
                         <h3 className="text-lg font-semibold text-gray-800">Notifications</h3>

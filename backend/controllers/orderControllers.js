@@ -1478,18 +1478,19 @@ const acceptInvitation = async (req, res) => {
       return res.status(404).json({ message: "Invitation not found." });
     }
 
-    // Use robust ID comparison
-    const isSeller = invitation.sellerId?.toString() === userId?.toString();
+    // Use robust ID comparison with cleanup
+    const invitationSellerId = invitation.sellerId?.toString().trim();
+    const currentUserId = userId?.toString().trim();
+    const isSeller = invitationSellerId === currentUserId;
     
-    // Check for admin role - admins can bypass this check
-    // Since we use verifyToken, req.user might be undefined, so we check req.isSeller
-    // However, none of the standard verifyToken payloads would make isAdmin true here.
-    // We'll rely on the enhanced check if available, or a fallback.
-    const isAdmin = req.user?.role === 'admin' || req.isAdmin === true;
+    // Check for admin role
+    const isAdmin = req.isAdmin === true || req.userRole === 'admin' || req.user?.role === 'admin';
 
     if (!isSeller && !isAdmin) {
+      console.log(`Auth Failed: User ${currentUserId} attempted to accept invitation meant for ${invitationSellerId}`);
       return res.status(403).json({ 
-        message: "Unauthorized. You are not the seller this invitation was sent to."
+        message: "Unauthorized. You are not the seller this invitation was sent to.",
+        debug: { userId: currentUserId, sellerId: invitationSellerId }
       });
     }
 
@@ -1579,10 +1580,18 @@ const rejectInvitation = async (req, res) => {
     }
 
     // Allow both seller and buyer to reject/cancel the invitation
-    const isSeller = invitation.sellerId?.toString() === userId?.toString();
-    const isBuyer = invitation.buyerId?.toString() === userId?.toString();
+    // Use robust ID comparison
+    const invitationSellerId = invitation.sellerId?.toString().trim();
+    const invitationBuyerId = invitation.buyerId?.toString().trim();
+    const currentUserId = userId?.toString().trim();
+
+    const isSeller = invitationSellerId === currentUserId;
+    const isBuyer = invitationBuyerId === currentUserId;
     
-    if (!isSeller && !isBuyer) {
+    // Check for admin role
+    const isAdmin = req.isAdmin === true || req.userRole === 'admin' || req.user?.role === 'admin';
+    
+    if (!isSeller && !isBuyer && !isAdmin) {
       return res.status(403).json({ message: "Unauthorized to reject this invitation." });
     }
 
