@@ -124,7 +124,6 @@ const PaymentForm: React.FC<{ paymentType: string; orderData: any }> = ({
           throw new Error("No success response");
         }
       } catch (err: any) {
-        console.log('Using local price breakdown (fallback/error)', err.message);
         const platformFee = parsedPrice * 0.05;
         setPriceBreakdown({
           basePrice: parsedPrice,
@@ -147,8 +146,6 @@ const PaymentForm: React.FC<{ paymentType: string; orderData: any }> = ({
 
   const getPaymentApiData = () => {
     const { gigId, orderId, promotionalPlan } = orderData || {};
-
-    console.log('Payment Context:', { paymentType, orderData });
 
     const endpoints = {
       order_payment: {
@@ -177,8 +174,6 @@ const PaymentForm: React.FC<{ paymentType: string; orderData: any }> = ({
   const fetchClientSecret = async (): Promise<{ clientSecret: string | null }> => {
     try {
       const { data, url } = getPaymentApiData();
-      console.log('Payment API Request:', { url, data });
-
       const response = await axios.post(url, data, { withCredentials: true });
       const clientSecret = response.data.client_secret;
 

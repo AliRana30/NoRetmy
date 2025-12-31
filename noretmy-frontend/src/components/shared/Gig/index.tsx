@@ -54,7 +54,6 @@ interface GigProps {
   onFavoriteChange?: (gigId: number, isFavorite: boolean) => void;
 }
 
-
 const GigCard: React.FC<GigProps> = ({ gig, initialIsFavorite = false, onFavoriteChange }) => {
   const [isLiked, setIsLiked] = useState(initialIsFavorite);
   const [isToggling, setIsToggling] = useState(false);
@@ -86,7 +85,6 @@ const GigCard: React.FC<GigProps> = ({ gig, initialIsFavorite = false, onFavorit
   const displaySales = gig.sales || gig.enrollments || 0;
   const displayPrice = gig.premiumPlan?.price || gig.pricingPlan?.basic?.price || parseFloat(gig.price) || 0;
   const deliveryDays = gig.premiumPlan?.deliveryTime || gig.pricingPlan?.basic?.deliveryTime || gig.deliveryTime || 3;
-
 
   const handleFavoriteClick = async (e: React.MouseEvent) => {
     e.preventDefault();

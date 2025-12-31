@@ -8,6 +8,4 @@ router.post('/',verifyToken, submitContactForm);
 router.get('/', getAllMessages);
 router.post('/reply', replyMessage);
 
-
-
 module.exports = router;

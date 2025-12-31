@@ -12,8 +12,7 @@ const connectDB = async () => {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
-    console.log('✅ MongoDB connected successfully');
-  } catch (error) {
+    } catch (error) {
     console.error('❌ MongoDB connection failed:', error.message);
     process.exit(1);
   }
@@ -21,19 +20,13 @@ const connectDB = async () => {
 
 const setupRoleBasedSystem = async () => {
   try {
-    console.log('🚀 Starting role-based system setup...\n');
-
     // Step 1: Migrate existing users to new role system
-    console.log('📝 Step 1: Migrating existing users to new role system...');
-    
     const usersToUpdate = await User.find({
       $or: [
         { role: { $exists: false } },
         { role: null }
       ]
     });
-
-    console.log(`Found ${usersToUpdate.length} users to migrate`);
 
     for (const user of usersToUpdate) {
       // Determine role based on existing isSeller field
@@ -48,12 +41,9 @@ const setupRoleBasedSystem = async () => {
         permissions: [] // Empty permissions for regular users
       });
 
-      console.log(`✅ Updated user ${user.email} with role: ${newRole}`);
-    }
+      }
 
     // Step 2: Create initial admin user
-    console.log('\n📝 Step 2: Creating initial admin user...');
-    
     const adminEmail = process.env.ADMIN_EMAIL || 'admin@noretmy.com';
     const adminPassword = process.env.ADMIN_PASSWORD || 'Admin123!@#';
     const adminUsername = process.env.ADMIN_USERNAME || 'admin';
@@ -68,8 +58,7 @@ const setupRoleBasedSystem = async () => {
     });
 
     if (existingAdmin) {
-      console.log(`⚠️  Admin user already exists: ${existingAdmin.email}`);
-    } else {
+      } else {
       // Create admin user
       const adminUser = new User({
         email: adminEmail,
@@ -102,15 +91,9 @@ const setupRoleBasedSystem = async () => {
 
       await adminProfile.save();
 
-      console.log(`✅ Created admin user: ${adminEmail}`);
-      console.log(`🔑 Admin credentials:`);
-      console.log(`   Email: ${adminEmail}`);
-      console.log(`   Password: ${adminPassword}`);
-      console.log(`   ⚠️  Please change the password after first login!`);
-    }
+      }
 
     // Step 3: Display role statistics
-    console.log('\n📊 Step 3: Role distribution summary:');
     const roleStats = await User.aggregate([
       {
         $group: {
@@ -124,12 +107,9 @@ const setupRoleBasedSystem = async () => {
     ]);
 
     roleStats.forEach(stat => {
-      console.log(`   ${stat._id}: ${stat.count} users`);
-    });
+      });
 
     // Step 4: Validation checks
-    console.log('\n🔍 Step 4: Running validation checks...');
-    
     const usersWithoutRole = await User.countDocuments({ 
       $or: [
         { role: { $exists: false } },
@@ -143,25 +123,12 @@ const setupRoleBasedSystem = async () => {
       isVerified: false 
     });
 
-    console.log(`   Users without role: ${usersWithoutRole}`);
-    console.log(`   Admin users: ${adminCount}`);
-    console.log(`   Unverified non-admin users: ${verificationIssues}`);
-
     if (usersWithoutRole === 0 && adminCount > 0) {
-      console.log('\n✅ Role-based system setup completed successfully!');
-    } else {
-      console.log('\n⚠️  There might be some issues with the setup. Please review the validation results.');
-    }
+      } else {
+      }
 
     // Step 5: Show next steps
-    console.log('\n📋 Next Steps:');
-    console.log('1. Update your frontend to handle the new role system');
-    console.log('2. Test the admin dashboard at /api/admin/dashboard/stats');
-    console.log('3. Update API calls to use the new role-based endpoints');
-    console.log('4. Consider implementing audit logging for admin actions');
-    console.log('5. Set up proper backup procedures for user data');
-
-  } catch (error) {
+    } catch (error) {
     console.error('❌ Error during role-based system setup:', error);
     throw error;
   }
@@ -204,7 +171,6 @@ const createAdminUser = async (email, password, fullName, username, permissions 
 
     await adminProfile.save();
 
-    console.log(`✅ Created additional admin user: ${email}`);
     return adminUser;
   } catch (error) {
     console.error('❌ Error creating admin user:', error.message);
@@ -229,23 +195,18 @@ const main = async () => {
       const username = args[4] || email.split('@')[0];
       
       if (!email || !password) {
-        console.log('Usage: node setupRoleBasedSystem.js create-admin <email> <password> [fullName] [username]');
         process.exit(1);
       }
       
       await createAdminUser(email, password, fullName, username);
     } else {
-      console.log('Available commands:');
-      console.log('  setup                                    - Set up the role-based system');
-      console.log('  create-admin <email> <password> [name]  - Create an additional admin user');
-    }
+      }
   } catch (error) {
     console.error('❌ Script execution failed:', error.message);
     process.exit(1);
   } finally {
     await mongoose.connection.close();
-    console.log('\n📡 Database connection closed');
-  }
+    }
 };
 
 // Execute if run directly

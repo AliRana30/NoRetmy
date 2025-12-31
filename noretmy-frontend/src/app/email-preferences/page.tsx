@@ -10,7 +10,6 @@ interface NewsletterPreferences {
   receiveSpecialOffers: boolean;
 }
 
-
 const frequencyOptions: Record<number, 'daily' | 'weekly' | 'monthly' | 'none'> = {
     0: 'daily',
     1: 'weekly',
@@ -64,14 +63,7 @@ const NewsletterPreferencesPage: React.FC = () => {
         // Mock response from backend (using numeric values)
         const dataFromBackend = response.data;
   
-        console.log(dataFromBackend)
-        setPreferences({
-          email: dataFromBackend.email,
-          frequency: frequencyOptions[dataFromBackend.frequency],
-          topics: dataFromBackend.topics.map(id => topicOptions[id]),
-          receiveSpecialOffers: dataFromBackend.receiveSpecialOffers,
-        });
-      } catch (err) {
+        } catch (err) {
         setError('Failed to load your preferences. Please try again.');
       } finally {
         setLoading(false);
@@ -80,7 +72,6 @@ const NewsletterPreferencesPage: React.FC = () => {
   
     fetchPreferences();
   }, []);
-  
 
   const handleTopicChange = (topic: string) => {
     setPreferences(prev => {
@@ -90,8 +81,6 @@ const NewsletterPreferencesPage: React.FC = () => {
       return { ...prev, topics: [...prev.topics, topic] };
     });
   };
-
-
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,7 +99,6 @@ const NewsletterPreferencesPage: React.FC = () => {
       // Simulate saving to backend
       // await new Promise(resolve => setTimeout(resolve, 1000));
 
-
       const response = await axios.put(`${BACKEND_URL}/newsletter/edit`,payload,{withCredentials: true})
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
@@ -120,7 +108,6 @@ const NewsletterPreferencesPage: React.FC = () => {
       setLoading(false);
     }
   };
-  
 
   if (loading && preferences.email === '') {
     return (

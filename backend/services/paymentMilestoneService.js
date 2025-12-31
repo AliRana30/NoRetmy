@@ -78,8 +78,6 @@ const createPaymentIntentWithAuth = async (order, email, captureMethod = 'manual
     order.paymentStatus = 'processing';
     await order.save();
     
-    console.log(`[PaymentMilestone] Created PaymentIntent ${paymentIntent.id} for Order ${order._id}`);
-    
     return {
       success: true,
       clientSecret: paymentIntent.client_secret,
@@ -136,8 +134,6 @@ const processAcceptedMilestone = async (orderId, sellerId) => {
     
     // Send notifications (outside transaction)
     await notifyMilestoneChange(order, 'accepted', amount);
-    
-    console.log(`[PaymentMilestone] Accepted milestone processed for Order ${orderId}`);
     
     return { success: true, milestone };
     
@@ -210,8 +206,6 @@ const processEscrowMilestone = async (orderId) => {
       await freelancer.addEarnings(amount, order._id);
     }
     
-    console.log(`[PaymentMilestone] Escrow milestone processed for Order ${orderId}`);
-    
     return { success: true, milestone };
     
   } catch (error) {
@@ -261,8 +255,6 @@ const processDeliveryMilestone = async (orderId, sellerId) => {
     // Notify
     await notifyMilestoneChange(order, 'delivered', amount);
     
-    console.log(`[PaymentMilestone] Delivery milestone processed for Order ${orderId}`);
-    
     return { success: true, milestone };
     
   } catch (error) {
@@ -308,8 +300,6 @@ const processReviewMilestone = async (orderId, buyerId) => {
     
     // Notify
     await notifyMilestoneChange(order, 'reviewed', amount);
-    
-    console.log(`[PaymentMilestone] Review milestone processed for Order ${orderId}`);
     
     return { success: true, milestone };
     
@@ -416,8 +406,6 @@ const releaseFundsToFreelancer = async (orderId) => {
     // Send notifications
     await notifyMilestoneChange(order, 'completed', totalToRelease);
     
-    console.log(`[PaymentMilestone] Funds released for Order ${orderId}: $${totalToRelease.toFixed(2)}`);
-    
     return { success: true, amountReleased: totalToRelease };
     
   } catch (error) {
@@ -510,13 +498,10 @@ const processCancellation = async (orderId, reason, cancelledBy) => {
     // Update seller badge metrics for the cancellation
     try {
       await updateSellerMetricsOnCancellation(order.sellerId);
-      console.log(`[PaymentMilestone] Updated seller metrics for cancellation - Seller: ${order.sellerId}`);
-    } catch (metricsError) {
+      } catch (metricsError) {
       console.error('[PaymentMilestone] Error updating seller metrics on cancellation:', metricsError);
       // Don't fail the cancellation if metrics update fails
     }
-    
-    console.log(`[PaymentMilestone] Cancellation processed for Order ${orderId}`);
     
     return { success: true, refundedAmount: totalRefunded };
     

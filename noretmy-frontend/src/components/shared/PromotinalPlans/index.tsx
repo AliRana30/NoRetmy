@@ -121,8 +121,7 @@ const PromotionalPlansScreen = () => {
         }
       } catch (error: any) {
         // User might not be a seller or no active promotions
-        console.log('No active promotions or not a seller');
-      } finally {
+        } finally {
         setLoading(false);
       }
     };

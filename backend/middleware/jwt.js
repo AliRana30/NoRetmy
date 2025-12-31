@@ -11,7 +11,6 @@ const verifyToken = (req, res, next) => {
     
     jwt.verify(token, process.env.JWT_KEY, async (err, payload) => {
         if (err) {
-            console.log("verifyToken - JWT error:", err.name, err.message);
             // Return 401 for expired tokens so frontend can refresh
             if (err.name === 'TokenExpiredError') {
                 return res.status(401).json({ message: "Token has expired. Please login again." });
@@ -32,13 +31,6 @@ const checkRole = (allowedRoles) => async (req, res, next) => {
         // First, try to get role from req.isSeller (old system)
         let userRole = req.isSeller ? "seller" : "buyer";
         
-        console.log('checkRole Debug:', {
-            reqIsSeller: req.isSeller,
-            reqUserId: req.userId,
-            allowedRoles,
-            initialUserRole: userRole
-        });
-        
         // If user data is available on the request (from enhanced middleware), use that
         if (req.user && req.user.role) {
             // Map new role system to old role names for compatibility
@@ -52,11 +44,6 @@ const checkRole = (allowedRoles) => async (req, res, next) => {
         } else if (req.userId) {
             // Fetch user from database to get role
             const user = await User.findById(req.userId);
-            console.log('checkRole - User from DB:', {
-                userId: req.userId,
-                dbIsSeller: user?.isSeller,
-                dbRole: user?.role
-            });
             if (user) {
                 if (user.role === 'freelancer' || user.isSeller) {
                     userRole = 'seller';
@@ -68,12 +55,6 @@ const checkRole = (allowedRoles) => async (req, res, next) => {
             }
         }
         
-        console.log('checkRole - Final decision:', {
-            userRole,
-            allowedRoles,
-            hasAccess: allowedRoles.includes(userRole)
-        });
-
         // Admin always has access
         if (userRole === 'admin') {
             return next();
@@ -99,11 +80,9 @@ const checkRole = (allowedRoles) => async (req, res, next) => {
     }
 };
 
-
 // Enhanced token verification for admin features
 const verifyTokenEnhanced = async (req, res, next) => {
 
-    console.log(req.headers);
     try {
         const token = req.cookies.accessToken || req.headers.authorization?.split(" ")[1];
         if (!token) {
@@ -156,13 +135,6 @@ const verifyTokenEnhanced = async (req, res, next) => {
         req.isSeller = user.isSeller; // Backward compatibility
         req.isAdmin = effectiveRole === 'admin'; // Easy admin check
         req.permissions = user.permissions || [];
-
-        console.log('verifyTokenEnhanced - User authenticated:', {
-            userId: user._id,
-            email: user.email,
-            role: effectiveRole,
-            isAdmin: effectiveRole === 'admin'
-        });
 
         next();
     } catch (error) {
@@ -240,13 +212,6 @@ const checkRoleEnhanced = (allowedRoles, options = {}) => {
             }
 
             if (!hasAccess) {
-                console.log('Access denied for user:', {
-                    userId: req.userId,
-                    userRole: userRole,
-                    requiredRoles: rolesArray,
-                    userRoleLevel: userRoleLevel,
-                    email: req.user?.email
-                });
                 return res.status(403).json({ 
                     success: false, 
                     message: "Access denied. Insufficient permissions.",

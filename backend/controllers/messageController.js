@@ -1,7 +1,6 @@
 const Conversation = require("../models/Conversation");
 const Message = require("../models/Message");
 
-
 let io; 
 
 const setSocketIO = (socketIO) => {
@@ -57,7 +56,6 @@ const getMessages = async (req, res, next) => {
     next(error);
   }
 };
-
 
 const searchSensitiveMessages = async (req, res) => {
   try {
@@ -235,9 +233,6 @@ const searchSensitiveMessages = async (req, res) => {
       desc: { $regex: keyword, $options: 'i' } // 'i' for case-insensitive search
     }));
 
-
-    console.log("Here");
-
     // Search the database
     const sensitiveMessages = await Message.find({
       $or: regexPatterns
@@ -252,8 +247,5 @@ const searchSensitiveMessages = async (req, res) => {
     res.status(500).json({ message: 'Error searching messages', error });
   }
 };
-
-
-
 
 module.exports = { setSocketIO, createMessage, getMessages, searchSensitiveMessages };

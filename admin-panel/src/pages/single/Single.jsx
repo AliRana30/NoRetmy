@@ -41,8 +41,6 @@ const Single = () => {
         setLoading(true);
         setError(null);
         const response = await getAdminUserDetail(userId);
-        console.log("User detail response:", response);
-        
         if (response?.data?.user) {
           setUserData({
             ...response.data.user,

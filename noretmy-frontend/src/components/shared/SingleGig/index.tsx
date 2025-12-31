@@ -30,7 +30,6 @@ const GigDetailsSection: React.FC<GigDetailsSectionProps> = ({ id }) => {
   const { t, getCurrentLanguage } = useTranslations();
   const currentLanguage = getCurrentLanguage();
 
-
   useEffect(() => {
     const fetchGigData = async () => {
       try {
@@ -184,12 +183,6 @@ const GigDetailsSection: React.FC<GigDetailsSectionProps> = ({ id }) => {
         gigId={gig._id}
         pricingPlans={pricingPlans}
         sellerId={gig?.sellerId}
-        onPlanSelect={(plan) => console.log('Selected Plan:', plan)}
-        onBuyNow={(plan) => console.log('Buy Now:', plan)}
-      />
-      <ReviewsComponent reviews={reviewsProps} faqs={faqs} />
-    </div>
-  );
-};
+        onPlanSelect={(plan) => };
 
 export default GigDetailsSection;

@@ -45,8 +45,7 @@
 //   try {
 
 //     if (!req.files || !Array.isArray(req.files) || req.files.length === 0) {
-//       console.log("Error here in files ");
-//       return { success: false, error: 'No files uploaded' };
+//       //       return { success: false, error: 'No files uploaded' };
 //     }
 
 //     // Upload all files to Cloudinary
@@ -72,8 +71,6 @@
 //   upload, // Middleware for handling file uploads
 //   uploadFiles, // Function to upload files to Cloudinary
 // };
-
-
 
 const s3 = require('../config/s3Config');
 const multer = require('multer');

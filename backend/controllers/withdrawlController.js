@@ -2,7 +2,6 @@ const User = require('../models/User');
 const WithdrawRequest = require('../models/withdrawRequest');
 const { handleStripeOnboarding, createStripeTransfer } = require('./stripeContoroller');
 
-
 const Freelancer = require('../models/Freelancer');
 const UserProfile = require('../models/UserProfile');
 const { withdrawFundsthroughPayPal, processPayPalWithdrawal } = require('./PaymentController');
@@ -140,8 +139,6 @@ const handleWithdrawalRequest = async (req, res) => {
   }
 };
 
-
-
 const setWithdrawalMethod = async (req, res) => {
     const { email, withdrawalMethod } = req.body;
     const { userId } = req;
@@ -195,7 +192,6 @@ const setWithdrawalMethod = async (req, res) => {
             await freelancer.save();
         }
 
-
         res.status(200).json({
             success: true,
             message: "Your account updated successfully!",
@@ -206,7 +202,6 @@ const setWithdrawalMethod = async (req, res) => {
         res.status(500).json({ success: false, error: error.message });
     }
 };
-
 
 const getAllWithdrawRequests = async (req, res) => {
     try {
@@ -264,9 +259,6 @@ const rejectWithdrawRequest = async (req, res) => {
     }
 };
 
-
-
-
 const approveWithdrawRequest = async (req, res) => {
     const { requestId } = req.body;
 
@@ -283,7 +275,6 @@ const approveWithdrawRequest = async (req, res) => {
 
         // Find the freelancer associated with the withdrawal request
         const freelancer = await Freelancer.findOne({ userId: withdrawalRequest.userId });
-
 
         if (!freelancer) {
             return res.status(404).json({ success: false, message: 'Freelancer not found.' });
@@ -326,7 +317,6 @@ const approveWithdrawRequest = async (req, res) => {
                 result
             });
 
-
         } else {
             return res.status(400).json({
                 success: false,
@@ -339,7 +329,6 @@ const approveWithdrawRequest = async (req, res) => {
     }
 };
 
-
 const getUserWithdrawalRequest = async (req, res) => {
     try {
         const { userId } = req;
@@ -351,7 +340,6 @@ const getUserWithdrawalRequest = async (req, res) => {
         const withdrawRequests = await WithdrawRequest.find({ userId });
 
         const freelancer = await Freelancer.findOne({ userId }).select('_id onboardingStatus availableBalance email withdrawalMethod');
-
 
         // if (!withdrawRequests.length) {
         //     return res.status(404).json({ message: "No withdrawal requests found." });
@@ -372,6 +360,5 @@ const getUserWithdrawalRequest = async (req, res) => {
         res.status(500).json({ error: "Internal server error" });
     }
 };
-
 
 module.exports = { handleWithdrawalRequest, approveWithdrawRequest, getAllWithdrawRequests, rejectWithdrawRequest, getUserWithdrawalRequest, setWithdrawalMethod }

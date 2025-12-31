@@ -36,7 +36,6 @@ const ChatContent = () => {
     );
   }
 
-
   return <ChatScreen />;
 };
 

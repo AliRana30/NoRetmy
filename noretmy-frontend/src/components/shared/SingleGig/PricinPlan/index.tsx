@@ -48,8 +48,7 @@ const PricingPlans = ({
   const isOwnGig = userId && sellerId ? String(userId) === String(sellerId) : false;
 
   if (process.env.NODE_ENV === 'development') {
-    console.log('PricingPlans Debug:', { userId, sellerId, isOwnGig, userEmail: user?.email });
-  }
+    }
 
   const handlePlanSelect = (index: number) => {
     if (!isLoggedIn) {
@@ -294,7 +293,6 @@ const PricingPlans = ({
                   className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all resize-none text-sm"
                 />
               </div>
-
 
               {/* Timeline Info */}
               <div className="bg-blue-50 border border-black rounded-xl p-3 mb-4">

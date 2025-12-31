@@ -45,8 +45,7 @@ const SystemHealth = () => {
         });
         systemStats = statsResponse.data || {};
       } catch (e) {
-        console.log('System stats not available');
-      }
+        }
 
       // Update health data with real or simulated data
       setHealthData({

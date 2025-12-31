@@ -8,7 +8,6 @@ const submitContactForm = async (req, res) => {
         const { email,subject, message } = req.body;
         const {userId} = req;
 
-
         // Validate the email and message
         if (!email || !message || !subject) {
             return res.status(400).json({ error: 'Email and message are required.' });
@@ -32,8 +31,6 @@ const submitContactForm = async (req, res) => {
     }
 };
 
-
-
 const getAllMessages = async (req, res) => {
     try {
         
@@ -45,8 +42,6 @@ const getAllMessages = async (req, res) => {
         return res.status(500).send({ error: 'An error occurred while submitting the contact form.' });
     }
 };
-
-
 
 const replyMessage = async (req, res) => {
     try {

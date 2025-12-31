@@ -9,5 +9,4 @@ router.post("/",verifyToken,createReview);
 router.get("/:id",getReviews)
 router.delete("/:id",deleteReview)
 
-
 module.exports = router;

@@ -17,7 +17,6 @@ const ForgotPasswordScreen: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL;
 
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -37,7 +36,6 @@ const ForgotPasswordScreen: React.FC = () => {
         `${BACKEND_URL}/auth/forget-password`,
         { email },
       );
-      console.log(response);
       setIsSubmitted(true);
     } catch (err) {
       setError('Something went wrong. Please try again.');

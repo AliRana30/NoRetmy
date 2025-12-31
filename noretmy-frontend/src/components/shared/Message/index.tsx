@@ -41,12 +41,7 @@ const MessageScreen: React.FC<{ route?: any }> = ({ route }) => {
   useEffect(() => {
     const id = searchParams.get('buyerId')
     setBuyerId(id)
-    console.log('buyerId:', id)
-  }, [searchParams])
-
-
-  const userId = useSelector((state: RootState) => state?.auth?.user?.id);
-  const userProfilePicture = useSelector((state: RootState) => state?.auth?.user?.profilePicture);
+    const userProfilePicture = useSelector((state: RootState) => state?.auth?.user?.profilePicture);
   const receiverId = userId === sellerId ? buyerId : sellerId;
 
   const [messages, setMessages] = useState<any[]>([]);
@@ -58,7 +53,6 @@ const MessageScreen: React.FC<{ route?: any }> = ({ route }) => {
   const socketRef = useRef<any>(null);
   const actionsMenuRef = useRef<HTMLDivElement | null>(null);
   const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL;
-
 
   const isSeller = useUserRole();
 
@@ -216,8 +210,7 @@ const MessageScreen: React.FC<{ route?: any }> = ({ route }) => {
               );
             } catch (createError) {
               // Conversation might already exist, continue with message
-              console.log('Conversation may already exist:', createError);
-            }
+              }
           }
         }
 
@@ -286,9 +279,7 @@ const MessageScreen: React.FC<{ route?: any }> = ({ route }) => {
       case 'custom':
         if (buyerId) {
           const url = `/custom-order/?buyerId=${buyerId}`;
-          console.log("Navigating to:", url);
           router.push(`/custom-order/?buyerId=${buyerId}`);
-
 
         } else {
           alert('Buyer ID is required for a Custom Order');

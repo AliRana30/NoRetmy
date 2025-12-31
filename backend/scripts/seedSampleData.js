@@ -7,13 +7,8 @@ const UserProfile = require('../models/UserProfile');
 
 async function seedSampleData() {
   try {
-    console.log('🔌 Connecting to MongoDB...');
     await mongoose.connect(process.env.MONGO_URI);
-    console.log('✅ Connected to MongoDB!\n');
-
     // Create sample users
-    console.log('👤 Creating sample users...');
-    
     const hashedPassword = await bcrypt.hash('Test123!', 10);
     
     const sampleUsers = [
@@ -47,10 +42,7 @@ async function seedSampleData() {
     await User.deleteMany({ email: { $in: sampleUsers.map(u => u.email) } });
     
     const createdUsers = await User.insertMany(sampleUsers);
-    console.log(`✅ Created ${createdUsers.length} sample users`);
-
     // Create user profiles
-    console.log('\n📝 Creating user profiles...');
     const userProfiles = createdUsers.map(user => ({
       userId: user._id,
       profilePicture: 'https://res.cloudinary.com/dqytzakzv/image/upload/v1234567890/sample-avatar.jpg',
@@ -63,11 +55,7 @@ async function seedSampleData() {
 
     await UserProfile.deleteMany({ userId: { $in: createdUsers.map(u => u._id) } });
     await UserProfile.insertMany(userProfiles);
-    console.log(`✅ Created ${userProfiles.length} user profiles`);
-
     // Create sample jobs
-    console.log('\n💼 Creating sample jobs...');
-    
     const categories = [
       { cat: 'Programming & Tech', subCat: 'Web Development' },
       { cat: 'Graphics & Design', subCat: 'Logo Design' },
@@ -145,25 +133,11 @@ async function seedSampleData() {
 
     await Job.deleteMany({ sellerId: { $in: createdUsers.map(u => u._id.toString()) } });
     const createdJobs = await Job.insertMany(sampleJobs);
-    console.log(`✅ Created ${createdJobs.length} sample jobs`);
-
-    console.log('\n📊 Summary:');
-    console.log(`   Users: ${await User.countDocuments()}`);
-    console.log(`   User Profiles: ${await UserProfile.countDocuments()}`);
-    console.log(`   Jobs: ${await Job.countDocuments()}`);
-    console.log(`   Featured Jobs (homepage): ${await Job.countDocuments({ upgradeOption: 'homepage' })}`);
-
-    console.log('\n✨ Sample data seeded successfully!');
-    console.log('\n🔐 Test login credentials:');
-    console.log('   Email: john.doe@example.com');
-    console.log('   Password: Test123!');
-
-  } catch (error) {
+    } catch (error) {
     console.error('❌ Error seeding data:', error);
     process.exit(1);
   } finally {
     await mongoose.connection.close();
-    console.log('\n🔌 Database connection closed.');
     process.exit(0);
   }
 }

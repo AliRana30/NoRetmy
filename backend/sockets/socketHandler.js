@@ -3,8 +3,6 @@ const onlineUsers = new Map(); // userId -> { socketId, lastSeen }
 
 const socketHandler = (io) => {
     io.on('connection', (socket) => {
-      console.log('A user connected:', socket.id);
-      
       // Handle user going online
       socket.on('userOnline', (userId) => {
         if (userId) {
@@ -21,8 +19,7 @@ const socketHandler = (io) => {
             lastSeen: new Date()
           });
           
-          console.log(`User ${userId} is now online. Total online: ${onlineUsers.size}`);
-        }
+          }
       });
       
       // Handle getting online users
@@ -41,8 +38,6 @@ const socketHandler = (io) => {
       // Handle user joining a room (conversation)
       socket.on('joinRoom', (conversationId) => {
         socket.join(conversationId);
-        console.log(`User ${socket.userId || 'unknown'} joined room: ${conversationId}`);
-        
         // Notify others in the room that someone joined
         socket.to(conversationId).emit('userJoinedRoom', {
           conversationId,
@@ -54,8 +49,7 @@ const socketHandler = (io) => {
       // Handle leaving a room
       socket.on('leaveRoom', (conversationId) => {
         socket.leave(conversationId);
-        console.log(`User ${socket.userId || 'unknown'} left room: ${conversationId}`);
-      });
+        });
   
       // Handle sending a message
       socket.on('sendMessage', (messageData) => {
@@ -69,8 +63,6 @@ const socketHandler = (io) => {
           conversationId,
           timestamp: new Date()
         });
-        
-        console.log(`Message sent to room ${conversationId} from ${senderId}:`, message.text?.substring(0, 50));
         
         // If receiver is online but not in room, send notification
         const receiver = onlineUsers.get(receiverId);
@@ -119,10 +111,8 @@ const socketHandler = (io) => {
             lastSeen: new Date()
           });
           
-          console.log(`User ${userId} disconnected. Total online: ${onlineUsers.size}`);
-        } else {
-          console.log('Unknown user disconnected:', socket.id);
-        }
+          } else {
+          }
       });
   
       // Handle errors

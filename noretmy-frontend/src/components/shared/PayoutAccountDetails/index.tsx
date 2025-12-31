@@ -198,7 +198,6 @@ const PayoutAccountsComponent: React.FC<PayoutAccountsComponentProps> = ({
   </div>
 )}
 
-
       {/* Add/Edit Account Form */}
       {showForm && (
         <div className="bg-gray-50 rounded-xl p-5 mb-6 border border-gray-200">

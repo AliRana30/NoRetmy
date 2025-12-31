@@ -40,7 +40,6 @@ const LoginPage = () => {
   // Watch form values for validation
   const watchedValues = watch();
 
-
   // Generate random sum for captcha
   useEffect(() => {
     setRandomSum({

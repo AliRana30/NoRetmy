@@ -7,7 +7,6 @@ const getCountryInfo = async (req) => {
         
         // Handle localhost/development environment
         if (ip === '::1' || ip === '127.0.0.1' || ip === 'localhost' || ip?.includes('::ffff:127.0.0.1')) {
-            console.log('Localhost detected, using default country info');
             return {
                 success: true,
                 country: 'United States',
@@ -35,7 +34,6 @@ const getCountryInfo = async (req) => {
             };
         } else {
             // Fallback to default if API returns unsuccessful
-            console.log('API returned unsuccessful, using default country info');
             return {
                 success: true,
                 country: 'United States',

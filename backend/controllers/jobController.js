@@ -18,14 +18,12 @@ const { uploadDocuments } = require("./uploadController");
 const { translateText, translateJSON } = require("../utils/translateText");
 const { getSellerStatistics } = require("../services/sellerService");
 
-
 // const createJob = async (req, res) => {
 //   const { userId } = req;
 
 //   if(!userId) {
 //     return res.status(401).json({ message: "You are not logged in!" });
 //   }
-
 
 //   try {
 //     const {
@@ -67,10 +65,8 @@ const { getSellerStatistics } = require("../services/sellerService");
 
 //     const documentUrls = await uploadDocuments(req); 
 
-
 //     let parsedFaqs = [];
 //     parsedFaqs = JSON.parse(faqs); 
-
 
 //     const newJob = new Job({
 //       title,
@@ -105,7 +101,6 @@ const { getSellerStatistics } = require("../services/sellerService");
 
 //     //   client_secret = secret;
 //     // }
-
 
 //     res.status(200).json( newJob);
 //   } catch (error) {
@@ -169,7 +164,6 @@ const createJob = async (req, res) => {
       return res.status(400).json({ message: "Invalid JSON format in one of the fields", error: err.message });
     }
 
-
     const newJob = new Job({
       title,
       cat,
@@ -195,12 +189,10 @@ const createJob = async (req, res) => {
   }
 };
 
-
 // const getAllJobs = async (req, res) => {
 //   try {
 //     const q = req.query;
 //     const targetLang = q.lang || 'en'; 
-
 
 //     const parsedCategories = q.categories
 //       ? q.categories.split(',').map((entry) => {
@@ -344,8 +336,6 @@ const createJob = async (req, res) => {
 //     }
 //   });
 // }
-
-
 
 //     const upgradePriority = {
 //       homepage: 1,
@@ -650,10 +640,6 @@ const getAllJobs = async (req, res) => {
   }
 };
 
-
-
-
-
 const applyDiscountToGig = async (req, res) => {
   try {
       const { userId } = req; 
@@ -690,7 +676,6 @@ const applyDiscountToGig = async (req, res) => {
   }
 };
 
-
 const getUserJobs = async (req, res) => {
   try {
     const { userId } = req;
@@ -699,23 +684,18 @@ const getUserJobs = async (req, res) => {
       return res.status(400).json({ message: "User ID is required" });
     }
 
-
     const jobs = await Job.find({ sellerId: userId });
-
 
     if (!jobs || jobs.length === 0) {
       return res.status(404).json({ message: "No jobs found" });
     }
 
-
-   
     res.status(200).json(jobs);
   } catch (error) {
     res.status(500).json({ message: "Server Error", error: error.message });
   }
 };
 
-    
 const convertJobPricesToEur = (jobs, rate) => {
       const convertPrice = (price) => rate ? price * rate : price;
     
@@ -803,8 +783,6 @@ const convertJobPricesToEur = (jobs, rate) => {
 //     res.status(500).json({ message: "Server Error", error: error.message });
 //   }
 // };
-
-
 
 const getFeaturedJobs = async (req, res) => {
   try {
@@ -950,8 +928,6 @@ const deleteJob = async (req, res) => {
 //     return { error: "An unexpected error occurred" }; // General error response
 //   }
 // };
-
-
 
 const getGigDetails = async (gigId, lang = 'en') => {
   try {
@@ -1104,8 +1080,6 @@ const getGigDetails = async (gigId, lang = 'en') => {
   }
 };
 
-
-
 const getGigDetailsController = async (req, res) => {
   const { id } = req.params;
 
@@ -1119,11 +1093,6 @@ const getGigDetailsController = async (req, res) => {
 
   res.status(200).json(gigDetails);
 };
-
-
-
-
-
 
 const editJob = async (req, res) => {
   const { userId } = req;
@@ -1166,8 +1135,6 @@ const editJob = async (req, res) => {
     res.status(500).json({ message: "Server Error", error: error.message });
   }
 };
-
-
 
 module.exports = {
   createJob,

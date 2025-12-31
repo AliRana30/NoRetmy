@@ -8,7 +8,6 @@ export const useLogout = () => {
   const router = useRouter();
   const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL;
 
-
   const handleLogout = async () => {
     try {
       const response = await axios.post(`${BACKEND_URL}/logout`);

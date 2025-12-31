@@ -35,7 +35,6 @@ const ResetPasswordScreen: React.FC = () => {
   const [passwordStrength, setPasswordStrength] = useState<number>(0);
   const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL;
 
-
   useEffect(() => {
     if (!token) {
       setError(
@@ -105,8 +104,6 @@ const ResetPasswordScreen: React.FC = () => {
 
     setIsSubmitting(true);
 
-    console.log(token);
-
     try {
       // Replace with your actual API endpoint
       const response = await axios.post(
@@ -117,7 +114,6 @@ const ResetPasswordScreen: React.FC = () => {
         },
       );
 
-      console.log(response);
       setIsSubmitted(true);
     } catch (err) {
       setError(

@@ -68,9 +68,6 @@ const EditGig: React.FC<EditGigProps> = ({ params }) => {
 
   const gigfro = useSelector((state) => selectGigById(state, params.id));
 
-  console.log(gig);
-
-  
   const [formData, setFormData] = useState({
     title: '',
     cat: '',

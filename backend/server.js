@@ -37,14 +37,7 @@ const emailRoutes = require('./routes/emailRoutes');
 const { initBadgeCronJobs } = require('./services/badgeCronJobs');
 const { initPromotionExpirationCron } = require('./scripts/expirePromotions');
 
-
-
-
-
 require('./controllers/vatController'); 
-
-
-
 
 const { uploadFiles, uploadImages } = require('./controllers/uploadController');
 const upload = require('./config/multer-cloudinary-storage');
@@ -52,8 +45,6 @@ const cookieParser = require('cookie-parser');
 const socketHandler = require('./sockets/socketHandler'); // Import socket handler
 
 const app = express();
-
-
 
 const allowedOrigins = [
   'http://localhost:8081', 
@@ -69,8 +60,6 @@ const allowedOrigins = [
 
 const corsOptions = {
   origin: (origin, callback) => {
-    console.log('Incoming Origin:', origin);
-    
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -110,17 +99,12 @@ app.use(cors(corsOptions));
 // });
 // u
 
-
 app.use('/api/webhook', webhookRoutes);
-
-
 
 app.use(express.json());
 app.use(cookieParser());
 
 connectDB();
-
-
 
 app.get('/', (req, res) => { 
   try { 
@@ -180,9 +164,6 @@ app.use('/api/chat-attachments', chatAttachmentRoutes);
 app.use('/api/payment-milestones', paymentMilestoneRoutes);
 app.use('/api/emails', emailRoutes);
 
-
-
-
 // Error handling middleware
 app.use((err, req, res, next) => {
   const errorStatus = err.status || 500;
@@ -206,8 +187,6 @@ socketHandler(io);
 // Start server
 const PORT = process.env.PORT || 5001;
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on port ${PORT}`);
-  
   // Initialize cron jobs
   initBadgeCronJobs();
   initPromotionExpirationCron();

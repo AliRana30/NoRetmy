@@ -101,12 +101,6 @@ router.get('/debug/auth-status', verifyTokenEnhanced, (req, res) => {
 router.use(verifyTokenEnhanced);
 router.use((req, res, next) => {
   // Log for debugging
-  console.log('Admin route accessed by:', {
-    userId: req.userId,
-    role: req.user?.role,
-    email: req.user?.email,
-    isVerified: req.user?.isVerified
-  });
   next();
 });
 router.use(checkRoleEnhanced(['admin'], { allowHigherRoles: false }));
@@ -166,7 +160,6 @@ router.get('/settings/vat', ...requirePermission('system_settings'), getVatSetti
 // ==================== VAT REPORTING ====================
 router.get('/vat/report', ...requirePermission('payment_management'), getVatReport);
 router.get('/vat/export', ...requirePermission('payment_management'), exportVatReport);
-
 
 // ==================== MARKETING ====================
 router.get('/marketing/newsletter', getNewsletterSubscribers);

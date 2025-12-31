@@ -93,7 +93,6 @@ adminAxios.interceptors.response.use(
   }
 );
 
-
 // Helper function to make authenticated requests
 const makeRequest = async (method, endpoint, data = null, params = {}) => {
   try {

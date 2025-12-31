@@ -9,12 +9,8 @@ const upload = multer({ storage }).array('images', 5); // Declare upload only on
 
 // Function to handle image uploads
 const uploadImages = async (req, res) => {
-  console.log('Request Body:', req.body);
-  console.log('Request Files:', req.files);
-
   try {
     if (!req.files || !Array.isArray(req.files) || req.files.length === 0) {
-      console.log('No files received');
       return res.status(400).json({ error: 'No files uploaded' });
     }
 
@@ -55,14 +51,9 @@ const uploadImages = async (req, res) => {
   }
 };
 
-
 const uploadDocuments = async (req) => {
-  console.log('Request Body:', req.body);
-  console.log('Request Files:', req.files);
-
   try {
     if (!req.files || !Array.isArray(req.files) || req.files.length === 0) {
-      console.log('No files received');
       return res.status(400).json({ error: 'No files uploaded' });
     }
 
@@ -101,8 +92,6 @@ const uploadDocuments = async (req) => {
   }
 };
 
-
-
 const uploadandVerifyImages = async (req, res) => {
   try {
     const userId = req.userId;
@@ -136,7 +125,6 @@ const uploadandVerifyImages = async (req, res) => {
     res.status(500).json({ error: error.message || "Internal Server Error" });
   }
 };
-
 
 module.exports = {
   upload,

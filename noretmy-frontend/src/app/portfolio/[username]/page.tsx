@@ -41,13 +41,11 @@ interface UserData {
 // Component
 const UserProfile: React.FC = ({ params }: { params: { username: string } }) => {
 
-  console.log(params.username)
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState('portfolio');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL;
-
 
   useEffect(() => {
     const fetchData = async () => {
@@ -56,7 +54,7 @@ const UserProfile: React.FC = ({ params }: { params: { username: string } }) => 
         setUserData(response.data);
         setLoading(false);
       } catch (error) {
-        console.log("Error fetching user data");
+
         setLoading(false);
       }
     }
@@ -234,7 +232,6 @@ const UserProfile: React.FC = ({ params }: { params: { username: string } }) => 
           </div>
         </header>
 
-
         {/* Mobile Tab Navigation */}
         <div className="mt-6 lg:hidden">
           <div className="bg-white rounded-full p-1 flex justify-between shadow-sm overflow-hidden">
@@ -402,7 +399,6 @@ const UserProfile: React.FC = ({ params }: { params: { username: string } }) => 
             </section>
           )}
         </main>
-
 
       </div>
     </div>

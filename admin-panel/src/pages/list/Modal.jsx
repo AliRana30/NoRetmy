@@ -3,8 +3,6 @@ import React, { useState } from 'react';
 const Modal = ({ isOpen, closeModal, userData }) => {
   if (!isOpen) return null;
 
-  console.log(userData.fullName);
-
   return (
     <div className="modalOverlay">
       <div className="modalContent">

@@ -73,7 +73,6 @@ const OrderRequestScreen = () => {
           },
         );
 
-        console.log('Custom Order Data', response.data);
         setOrders(response.data);
         setIsLoading(false);
       } catch (error) {

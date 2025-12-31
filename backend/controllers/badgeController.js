@@ -521,8 +521,6 @@ const adminOverrideBadge = async (req, res) => {
     }
 
     // Log the action
-    console.log(`Admin ${adminId} overrode badge for seller ${sellerId} to ${level}: ${reason}`);
-
     res.status(200).json({
       success: true,
       message: 'Badge level overridden successfully',

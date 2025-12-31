@@ -62,7 +62,6 @@ const Gigs: React.FC = () => {
   };
 
   const handleShare = (id: string) => {
-    console.log("Share gig");
     // Copy shareable link to clipboard
     const shareUrl = `${window.location.origin}/gig/${id}`;
     navigator.clipboard.writeText(shareUrl)
@@ -136,7 +135,6 @@ const Gigs: React.FC = () => {
                   <button
                     onClick={(e) => {
                       e.stopPropagation(); // Prevent parent div from capturing the click
-                      console.log("Share button clicked!");
                       handleShare(gig._id);
                     }}
                     className="bg-white text-orange-500 p-2 rounded-full shadow-md hover:text-orange-600 hover:bg-gray-50 transition-colors duration-300"

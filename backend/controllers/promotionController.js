@@ -14,14 +14,6 @@ const mongoose = require('mongoose');
 const isEligibleForPromotion = (user) => {
   if (!user) return false;
 
-  console.log('Checking promotion eligibility for user:', {
-    id: user._id,
-    role: user.role,
-    isSeller: user.isSeller,
-    isCompany: user.isCompany,
-    sellerType: user.sellerType
-  });
-
   // Use the schema method if available
   if (typeof user.isSellerUser === 'function') {
     if (user.isSellerUser()) return true;
@@ -35,10 +27,6 @@ const isEligibleForPromotion = (user) => {
   const isCompanyType = user.sellerType === 'company';
 
   const eligible = isFreelancer || isAdmin || hasSellerFlag || hasCompanyFlag || isCompanyType;
-  
-  console.log('Eligibility result:', { 
-    eligible, isFreelancer, isAdmin, hasSellerFlag, hasCompanyFlag, isCompanyType 
-  });
   
   return eligible;
 };
@@ -239,8 +227,6 @@ const singleJobPromotionMonthlySubscriptionController = async (req, res) => {
       isForAll: false 
     };
 
-    console.log("Total Amount with VAT and fees:", breakdown.totalPrice);
-    
     // Create payment intent
     const paymentIntentResponse = await createCustomerAndPaymentIntentUtil(
       breakdown.totalPrice,

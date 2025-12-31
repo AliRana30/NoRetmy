@@ -25,8 +25,6 @@ const SingleOrder = () => {
         setLoading(true);
         setError(null);
         const response = await getAdminOrderDetail(orderId);
-        console.log("Order detail response:", response);
-        
         // Handle nested data structure from backend
         if (response?.data?.order) {
           setOrderData(response.data);

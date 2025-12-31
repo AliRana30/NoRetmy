@@ -26,7 +26,6 @@ function SearchGigsLoading() {
   );
 }
 
-
 const SearchGigsPage = () => {
   return (
     <main className="overflow-x-hidden">

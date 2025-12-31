@@ -54,7 +54,7 @@ const OrderDetailsPage = ({ params }: { params: { orderId: string } }) => {
         withCredentials: true,
       })
       .then((response) => {
-        console.log('Single Order Data ', response.data);
+
         setOrderData(response.data);
         setLoading(false);
         setOnOperationComplete(false);

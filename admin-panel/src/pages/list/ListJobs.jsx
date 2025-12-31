@@ -7,7 +7,6 @@ import commonTranslations from "../../localization/common.json";
 import { LoadingSpinner, ErrorMessage } from "../../components/ui";
 import { Briefcase, Search, Filter, Eye, Trash2, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
 
-
 const ListJobs = () => {
   const { darkMode } = useContext(DarkModeContext);
   const [data, setData] = useState([]);

@@ -8,7 +8,6 @@ import Link from 'next/link';
 import { useTranslations } from '@/hooks/useTranslations';
 import SellerBadge from '@/components/shared/SellerBadge';
 
-
 interface GigTopProps {
   seller: string;
   avatar: string;

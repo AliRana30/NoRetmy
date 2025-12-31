@@ -36,7 +36,6 @@ const verifyEmailConnection = async () => {
   try {
     const transporter = createTransporter();
     await transporter.verify();
-    console.log('✅ Email service connected successfully');
     return { success: true, message: 'Email service connected' };
   } catch (error) {
     console.error('❌ Email service connection failed:', error.message);
@@ -101,7 +100,6 @@ const sendEmailWithLogging = async (options) => {
       });
     }
     
-    console.log(`✅ Email sent: ${emailType} to ${to} [${result.messageId}]`);
     return { success: true, messageId: result.messageId };
     
   } catch (error) {
@@ -114,7 +112,6 @@ const sendEmailWithLogging = async (options) => {
     return { success: false, error: error.message };
   }
 };
-
 
 const sendVerificationEmail = async (email, token) => {
   const transporter = nodemailer.createTransport({
@@ -219,8 +216,6 @@ const sendVerificationEmail = async (email, token) => {
   // Send the email
   await transporter.sendMail(mailOptions);
 };
-
-
 
 const sendUserNotificationEmail = async (email, type, emailMessage, userType, orderDetails) => {
   const transporter = nodemailer.createTransport({
@@ -358,8 +353,6 @@ const sendUserNotificationEmail = async (email, type, emailMessage, userType, or
   await transporter.sendMail(mailOptions);
 };
 
-
-
 const sendWithdrawalStripeNotificationEmail = async (email, stripeLink) => {
   const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -400,12 +393,10 @@ const sendWithdrawalStripeNotificationEmail = async (email, stripeLink) => {
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log('Payment notification email sent successfully.');
-  } catch (error) {
+    } catch (error) {
     console.error('Error sending payment notification email:', error.message);
   }
 };
-
 
 const sendWithdrawalSuccessEmail = async (email, amount) => {
   const transporter = nodemailer.createTransport({
@@ -444,12 +435,10 @@ const sendWithdrawalSuccessEmail = async (email, amount) => {
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log('Withdrawal success email sent successfully.');
-  } catch (error) {
+    } catch (error) {
     console.error('Error sending withdrawal success email:', error.message);
   }
 };
-
 
 const sendWithdrawalRejectionEmail = async (email, reason) => {
   const transporter = nodemailer.createTransport({
@@ -487,12 +476,10 @@ const sendWithdrawalRejectionEmail = async (email, reason) => {
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log('Withdrawal rejection email sent successfully.');
-  } catch (error) {
+    } catch (error) {
     console.error('Error sending withdrawal rejection email:', error.message);
   }
 };
-
 
   const sendOrderSuccessEmail = async (email, orderDetails) => {
     const { _id: orderId, price, createdAt, vatRate, customerName ,gigTitle,discount} = orderDetails;
@@ -509,7 +496,6 @@ const sendWithdrawalRejectionEmail = async (email, reason) => {
     const platformFeeRate = 0.02;
     const platformFee = price * platformFeeRate;
     const totalAmount = price + vatAmount + platformFee;
-
 
     // Email Content
     
@@ -638,7 +624,6 @@ const sendWithdrawalRejectionEmail = async (email, reason) => {
         </body>
       </html>
     `;
-
 
     // Email transporter setup
     const transporter = nodemailer.createTransport({
@@ -788,7 +773,6 @@ const sendSellerOrderNotificationEmail = async (email, orderDetails) => {
   // Send the email
   await transporter.sendMail(mailOptions);
 };
-
 
 const sendPromotionPlanEmail = async (email, promotionDetails) => {
   
@@ -949,8 +933,6 @@ const sendPromotionPlanEmail = async (email, promotionDetails) => {
   await transporter.sendMail(mailOptions);
 };
 
-
-
 const sendAllGigsPromotionEmail = async (email, promotionDetails) => {
   const { 
     promotionPlanId, 
@@ -1104,7 +1086,6 @@ const sendAllGigsPromotionEmail = async (email, promotionDetails) => {
   await transporter.sendMail(mailOptions);
 };
 
-
 const sendOnboardingEmail = async (email, freelancerName, onboardingLink) => {
   // Email Content
   const emailSubject = `Complete Your Onboarding to Withdraw Funds`;
@@ -1206,7 +1187,6 @@ const sendOnboardingEmail = async (email, freelancerName, onboardingLink) => {
   await transporter.sendMail(mailOptions);
 };
 
-
 const sendResetPasswordEmail = async (email, resetLink) => {
   const emailSubject = "Reset Your Password - Noretmy";
   const emailBody = `
@@ -1305,7 +1285,6 @@ const sendResetPasswordEmail = async (email, resetLink) => {
   // Send the email
   await transporter.sendMail(mailOptions);
 };
-
 
 const sendOrderRequestEmail = async (email, requestDetails) => {
   const { _id: requestId, details, price, senderName, createdAt, description } = requestDetails;
@@ -1588,14 +1567,12 @@ const sendNewsletterWelcomeEmail = async (email, subscriberName) => {
   // Send the email
   try {
     await transporter.sendMail(mailOptions);
-    console.log(`Newsletter welcome email sent successfully to ${email}`);
     return { success: true };
   } catch (error) {
     console.error(`Failed to send newsletter welcome email to ${email}:`, error);
     return { success: false, error: error.message };
   }
 };
-
 
 // ============================================
 // PAYMENT MILESTONE EMAIL FUNCTIONS
@@ -1734,7 +1711,6 @@ const sendPaymentMilestoneEmail = async (email, milestoneDetails) => {
   });
 };
 
-
 const sendPaymentFailedEmail = async (email, paymentDetails) => {
   const {
     orderId,
@@ -1837,7 +1813,6 @@ const sendPaymentFailedEmail = async (email, paymentDetails) => {
   });
 };
 
-
 const sendOrderDeliveredEmail = async (email, deliveryDetails) => {
   const {
     orderId,
@@ -1930,7 +1905,6 @@ const sendOrderDeliveredEmail = async (email, deliveryDetails) => {
   });
 };
 
-
 const sendOrderCompletedEmail = async (email, orderDetails) => {
   const {
     orderId,
@@ -2016,7 +1990,6 @@ const sendOrderCompletedEmail = async (email, orderDetails) => {
   });
 };
 
-
 const sendChatAttachmentEmail = async (email, attachmentDetails) => {
   const {
     senderName,
@@ -2086,7 +2059,6 @@ const sendChatAttachmentEmail = async (email, attachmentDetails) => {
   });
 };
 
-
 // Test email function
 const sendTestEmail = async (email, testMessage = 'This is a test email from Noretmy.') => {
   const emailSubject = 'Test Email - Noretmy Email Service';
@@ -2130,7 +2102,6 @@ const sendTestEmail = async (email, testMessage = 'This is a test email from Nor
     metadata: { testMessage, timestamp: new Date().toISOString() }
   });
 };
-
 
 module.exports = { 
   // Core utilities

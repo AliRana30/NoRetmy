@@ -58,7 +58,6 @@ async function handleStripeOnboarding(userId,email, country) {
     }
 }
 
-
 const createStripeTransfer = async (amount, destination, description) => {
     try {
         const transfer = await stripe.transfers.create({

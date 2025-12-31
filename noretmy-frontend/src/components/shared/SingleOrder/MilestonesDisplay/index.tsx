@@ -65,7 +65,6 @@ const MilestoneOrderDisplay: React.FC<MilestoneOrderDisplayProps> = ({
     setSelectedMilestone(updatedMilestone);
   }, [orderDetails]);
 
-
   // Check if all milestones have the last status as 'approved'
 const allApproved = milestones.every(m => {
   const lastStatus = m.statusHistory?.[m.statusHistory.length - 1]?.status?.toLowerCase();
@@ -79,10 +78,7 @@ const isLastMilestone = selectedMilestone?._id === lastMilestoneId;
 // Check if both conditions are true: all approved and selected milestone is the last one
 const canReview = allApproved && isLastMilestone;
 
-console.log("can review", canReview);
-
-  
-  const handleMilestoneClick = (milestone: Milestone, index: number) => {
+const handleMilestoneClick = (milestone: Milestone, index: number) => {
     if (index === 0 || (milestones[index - 1] && milestones[index - 1].status.toLowerCase() === "approved")) {
       setSelectedMilestone(milestone);
     }
@@ -96,7 +92,6 @@ console.log("can review", canReview);
       default: return 'destructive';
     }
   };
-  
 
   return (
     <div className="max-w-6xl mx-auto p-6 bg-white rounded-xl shadow-sm">

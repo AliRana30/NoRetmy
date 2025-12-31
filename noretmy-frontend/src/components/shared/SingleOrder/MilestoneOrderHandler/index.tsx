@@ -71,15 +71,12 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
         orderDetails;
         const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL;
 
-
-
         let { statusHistory = [] } = selectedMilestone;
 
         if (canReview) {
             const reviewStatus = { status: "waitingReview", timestamp: new Date().toISOString() };
             statusHistory = [...statusHistory, reviewStatus];  
         }
-
 
     const [showSubmitDelivery, setShowSubmitDelivery] = useState(false);
 
@@ -188,8 +185,6 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
             .reverse();
     }, [statusHistory]);
 
-    console.log(filteredDropdownItems);
-
     const handleApiRequest = async (endpoint: string, data?: any) => {
         try {
             const res = await axios.put(
@@ -215,28 +210,12 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
     //   const  handleRequirementsSubmission =  async (requirements:string)=>{
 
     //     try {
-    //         console.log("Requirements are submitted succesfully!")
-    //         const response = await axios.put("https://api.noretmy.com/api/orders/requirements-submit",{requirements,orderId:orderDetails.orderId},{withCredentials:true});
-
-    //         if(response.status==200){
+    //         //         if(response.status==200){
     //           // showToast('success', 'Requirements Submission', 'Requirements submitted successfully!');
-    //           console.log("Order Requiremnets succesfully submitted")
-    //           onOperationComplete();
-    //         }
+    //           //         }
 
     //     } catch (error) {
-    //         console.log("Error in submitting the requirments!",error)
-    //     }
-    //  }
-
-    // eslint-disable-next-line @typescript-eslint/no-shadow
-
-    const handleRequirementsSubmission = (
-        requirements: string,
-        files: File[],
-    ) => {
-        const formData = new FormData();
-        formData.append('orderId', orderDetails.orderId);
+    //         formData.append('orderId', orderDetails.orderId);
         formData.append('requirements', requirements);
 
         // Append each file
@@ -247,14 +226,11 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
         handleApiRequest('requirements-submit', formData);
     };
 
-
-
     const handleOrderStarted = () => {
         // const formData = new FormData();
         // formData.append('orderId', orderDetails.orderId);
         handleApiRequest('start', { orderId: orderDetails.orderId });
 
-        
     };
     const handleOrderSubmit = (deliveryDescription: string) =>
         handleApiRequest('deliver', {
@@ -268,7 +244,6 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
             orderId: orderDetails.orderId,
             reason,
         });
-
 
         const handleSubmitReview = async (rating: number, desc: string) => {
             try {
@@ -284,8 +259,6 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
                 }
               );
           
-              console.log("Review submitted successfully:", response.data);
-        
               if(response.status==200){
                 showSuccess("Review submitted successfully!")
               }
@@ -336,8 +309,6 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
                 return;
             }
 
-            console.log(files);
-
             const formData = new FormData();
 
             // Append only provided values
@@ -351,15 +322,6 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
             if (deliveryDescription) formData.append("deliveryDescription", deliveryDescription);
             if (reason) formData.append("reason", reason);
 
-            console.log("Submitting milestone order data:", {
-                orderId: orderDetails?.orderId,
-                milestoneId: selectedMilestone?._id,
-                newStatus: status,
-                deliveryDescription,
-                reason,
-                files,
-            });
-
             const response = await axios.put(
                 `${BACKEND_URL}/orders/milestone`,
                 formData,
@@ -372,7 +334,6 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
             );
 
             if (response.status == 200 || response.status == 201 || response.status == 204) {
-                console.log("Status changed successfully!");
                 showSuccess(response.data.message);
                 onOperationComplete();
             }
@@ -380,8 +341,6 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
             console.error("Error in submitting the order!", error.response?.data || error.message);
         }
     };
-
-
 
     const handleDownload = (fileUrl: string, fileName: string) => {
         // Create a temporary anchor element to trigger download
@@ -394,48 +353,7 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
         document.body.removeChild(link);
     };
 
-    console.log()
-
-
-    const renderActions = (status: string, currentStatusData: any) => {
-        switch (status) {
-            case 'pending':
-                return (
-                    <div>
-                        <OrderDetails orderDate={orderDetails.orderDate} deliveryDate={selectedMilestone.deliveryDate} sellerName={sellerUsername} price={orderDetails.orderPrice} />
-                        {/* {!isSeller && orderStatus === 'created' && (
-                            <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all">
-                                <h3 className="text-gray-800 font-semibold mb-4 flex items-center">
-                                    <div className="bg-gray-100 p-2 rounded-full mr-3 text-black">
-                                        <FaFileAlt className="w-5 h-5" />
-                                    </div>
-                                    Submit Your Requirements
-                                </h3>
-                                <SubmitRequirements
-                                    onSubmit={(data, files) =>
-                                        handleRequirementsSubmission(data, files)
-                                    }
-                                    onClose={() => console.log('On Close clicked')}
-                                />
-                            </div>
-                        )} */}
-
-
-                        {isSeller && selectedMilestone.status === 'pending' && (
-                            <button
-                                onClick={() => {
-                                    console.log("started")
-                                    handleStart("started")
-                                }} // Replace with your function to start the order
-                                className="mt-4 bg-black text-white py-2 px-6 rounded-lg hover:bg-gray-900 transition-all"
-                            >
-                                Start Order
-                            </button>
-                        )}
-                    </div>
-                );
-
-            case 'requirementsSubmitted':
+    case 'requirementsSubmitted':
                 return (
                     <div className="bg-white p-6 rounded-lg border-l-4 border border-gray-300 shadow-sm hover:shadow-md transition-all">
                         <h3 className="text-gray-800 font-semibold mb-4 flex items-center">
@@ -448,23 +366,7 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
                         <ViewRequirements
                             requirements={requirements}
                             attachments={attachments}
-                            onClose={() => console.log('Clicked on close')}
-                        // orderStatus={orderStatus}
-                        />
-
-                        {/* Start Button */}
-                        {isSeller && orderStatus === 'requirementsSubmitted' && (
-                            <button
-                                onClick={handleOrderStarted} // Replace with your function to start the order
-                                className="mt-4 bg-black text-white py-2 px-6 rounded-lg hover:bg-gray-900 transition-all"
-                            >
-                                Start Order
-                            </button>
-                        )}
-                    </div>
-                );
-
-            case 'started':
+                            onClose={() => case 'started':
                 return (
                     <div className="space-y-5">
                         <div className="flex flex-col sm:flex-row gap-3 items-center">
@@ -489,7 +391,6 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
                             <div className="mt-4">
                                 <SubmitDelivery
                                     onSubmit={(data, files) => {
-                                        console.log("Files", files);
                                         handleStart("delivered", data, files)
                                     }}
                                     onClose={() => setShowSubmitDelivery(false)}
@@ -580,7 +481,6 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
                             </div>
                         </div>
 
-
                         {!isSeller && currentStatusData.status === 'delivered' && (
                             <div className="flex flex-col sm:flex-row gap-3 mt-5">
                                 <button
@@ -610,13 +510,7 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
                                 </h3>
                                 <RequestRevision
                                     onRevisionSubmit={(reason, files) => handleStart("requestedRevision", "", files, reason)}
-                                    onClose={() => console.log('Clicked on close')}
-                                />
-                            </div>
-                        )}
-                    </div>
-                );
-            case 'requestedRevision':
+                                    onClose={() => case 'requestedRevision':
                 return (
                     <div className="space-y-5">
                         <div className="bg-white p-6 rounded-lg border-l-4 border border-gray-300 shadow-sm hover:shadow-md transition-all">
@@ -670,13 +564,11 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
                             </button>
                         )}
 
-
                         {/* Render SubmitDelivery under the buttons when clicked */}
                         {showSubmitDelivery && (
                             <div className="mt-4">
                                 <SubmitDelivery
                                     onSubmit={(data, files) => {
-                                        console.log("Files", files);
                                         handleStart("delivered", data, files)
                                     }}
                                     onClose={() => setShowSubmitDelivery(false)}
@@ -706,7 +598,6 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
                             <span className="text-gray-700 font-medium">Order Protected</span>
                         </div>
 
-                        
                     </div>
 
                 );
@@ -742,7 +633,6 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
                       </>
                     );
 
-               
             default:
                 return (
                     <p className="text-gray-500 italic text-center p-5">

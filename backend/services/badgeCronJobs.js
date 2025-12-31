@@ -12,12 +12,9 @@ const User = require('../models/User');
  * Initialize all badge-related cron jobs
  */
 const initBadgeCronJobs = () => {
-  console.log('🏅 Initializing badge cron jobs...');
-
   // Daily badge re-evaluation at 3 AM
   // Runs for badges that haven't been evaluated in 7 days
   cron.schedule('0 3 * * *', async () => {
-    console.log('🔄 Running daily badge evaluation...');
     try {
       const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
       
@@ -56,19 +53,16 @@ const initBadgeCronJobs = () => {
         }
       }
 
-      console.log(`✅ Daily evaluation complete: ${updated} badges evaluated, ${promoted} promoted, ${demoted} demoted`);
-    } catch (error) {
+      } catch (error) {
       console.error('❌ Error in daily badge evaluation:', error);
     }
   });
 
   // Weekly full re-evaluation on Sundays at 4 AM
   cron.schedule('0 4 * * 0', async () => {
-    console.log('🔄 Running weekly full badge re-evaluation...');
     try {
       const updated = await badgeService.reEvaluateAllSellers();
-      console.log(`✅ Weekly re-evaluation complete: ${updated} badges updated`);
-    } catch (error) {
+      } catch (error) {
       console.error('❌ Error in weekly badge re-evaluation:', error);
     }
   });
@@ -76,7 +70,6 @@ const initBadgeCronJobs = () => {
   // Check for inactive sellers daily at 5 AM
   // Mark sellers as inactive if no activity in 60 days
   cron.schedule('0 5 * * *', async () => {
-    console.log('🔄 Checking for inactive sellers...');
     try {
       const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
       
@@ -103,8 +96,7 @@ const initBadgeCronJobs = () => {
         }
       );
 
-      console.log(`✅ Marked ${result.modifiedCount} sellers as inactive`);
-    } catch (error) {
+      } catch (error) {
       console.error('❌ Error checking inactive sellers:', error);
     }
   });
@@ -137,8 +129,7 @@ const initBadgeCronJobs = () => {
         }));
 
         await SellerBadge.insertMany(badgesToCreate, { ordered: false });
-        console.log(`✅ Created ${newFreelancers.length} new seller badges`);
-      }
+        }
     } catch (error) {
       // Ignore duplicate key errors
       if (error.code !== 11000) {
@@ -149,17 +140,14 @@ const initBadgeCronJobs = () => {
 
   // Achievement check (daily at 6 AM)
   cron.schedule('0 6 * * *', async () => {
-    console.log('🎖️ Checking for new achievements...');
     try {
       await checkAndAwardAchievements();
-      console.log('✅ Achievement check complete');
-    } catch (error) {
+      } catch (error) {
       console.error('❌ Error checking achievements:', error);
     }
   });
 
-  console.log('✅ Badge cron jobs initialized');
-};
+  };
 
 /**
  * Check and award achievements to eligible sellers
@@ -224,9 +212,7 @@ const checkAndAwardAchievements = async () => {
  * Manual trigger for badge evaluation (for testing)
  */
 const runManualEvaluation = async () => {
-  console.log('🔄 Running manual badge evaluation...');
   const updated = await badgeService.reEvaluateAllSellers();
-  console.log(`✅ Manual evaluation complete: ${updated} badges updated`);
   return updated;
 };
 

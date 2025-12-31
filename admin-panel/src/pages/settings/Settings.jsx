@@ -85,8 +85,7 @@ const Settings = () => {
         exportData.orders = ordersRes.data?.orders || ordersRes.data || [];
         exportData.jobs = jobsRes.data?.jobs || jobsRes.data || [];
       } catch (apiError) {
-        console.log('API fetch error, exporting available data');
-      }
+        }
 
       // Create and download JSON file
       const dataStr = JSON.stringify(exportData, null, 2);

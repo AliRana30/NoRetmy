@@ -158,8 +158,6 @@ export default function AppHeader() {
     }
   };
 
-
-
   const getRelativeTime = (date) => {
     const now = new Date();
     const diff = Math.floor((now - date) / 1000 / 60);

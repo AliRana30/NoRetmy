@@ -265,7 +265,6 @@ const getAllUsers = async (req, res) => {
       updatedAt: user.updatedAt
     }));
 
-
     res.status(200).json({
       success: true,
       data: formattedUsers,
@@ -331,26 +330,26 @@ const getUserDetails = async (req, res) => {
 
     try {
       userProfile = await UserProfile.findOne({ userId: userObjectId });
-    } catch (e) { console.log('Error fetching user profile:', e.message); }
+    } catch (e) { }
 
     // Fetch ALL jobs for this user (for the table)
     try {
       userJobs = await Job.find({ sellerId: userId }).select('_id title category location isActive createdAt upgradeOption').lean();
-    } catch (e) { console.log('Error fetching user jobs:', e.message); }
+    } catch (e) { }
 
     // Fetch recent orders
     try {
       userOrders = await Order.find({ 
         $or: [{ buyerId: userId }, { sellerId: userId }] 
       }).sort({ createdAt: -1 }).limit(20).lean();
-    } catch (e) { console.log('Error fetching user orders:', e.message); }
+    } catch (e) { }
 
     // Fetch recent reviews
     try {
       userReviews = await Review.find({
         $or: [{ userId: userId }, { sellerId: userId }]
       }).sort({ createdAt: -1 }).limit(10).lean();
-    } catch (e) { console.log('Error fetching user reviews:', e.message); }
+    } catch (e) { }
 
     // Calculate stats
     let userStats = {
@@ -438,7 +437,7 @@ const getUserDetails = async (req, res) => {
         const found = monthlyData.find(m => m._id.year === year && m._id.month === month);
         chartData.push({ name: monthNames[month - 1], Total: found?.total || 0 });
       }
-    } catch (e) { console.log('Error generating chart data:', e.message); }
+    } catch (e) { }
 
     res.status(200).json({
       success: true,
@@ -1031,8 +1030,7 @@ const getOrderDetails = async (req, res) => {
         buyer = await User.findById(order.buyerId).select('fullName email username profilePicture').lean().catch(() => null);
       }
     } catch (e) {
-      console.log('Error fetching buyer:', e.message);
-    }
+      }
     
     try {
       if (order.sellerId && order.sellerId.match && order.sellerId.match(/^[0-9a-fA-F]{24}$/)) {
@@ -1041,8 +1039,7 @@ const getOrderDetails = async (req, res) => {
         seller = await User.findById(order.sellerId).select('fullName email username profilePicture').lean().catch(() => null);
       }
     } catch (e) {
-      console.log('Error fetching seller:', e.message);
-    }
+      }
     
     try {
       const gigId = order.gigId || order.jobId;
@@ -1050,8 +1047,7 @@ const getOrderDetails = async (req, res) => {
         job = await Job.findById(gigId).select('title description category price images').lean().catch(() => null);
       }
     } catch (e) {
-      console.log('Error fetching job:', e.message);
-    }
+      }
     
     // Attach populated data
     order.buyerId = buyer || { _id: order.buyerId, fullName: 'Unknown Buyer' };
@@ -1065,8 +1061,7 @@ const getOrderDetails = async (req, res) => {
         orderId: orderId
       }).populate('senderId', 'fullName').sort({ createdAt: 1 });
     } catch (e) {
-      console.log('Error fetching messages:', e.message);
-    }
+      }
 
     // Get reviews for this order (may not exist)
     let reviews = [];
@@ -1075,8 +1070,7 @@ const getOrderDetails = async (req, res) => {
         orderId: orderId
       }).populate('reviewerId revieweeId', 'fullName');
     } catch (e) {
-      console.log('Error fetching reviews:', e.message);
-    }
+      }
 
     res.status(200).json({
       success: true,
@@ -1166,8 +1160,6 @@ const deleteOrder = async (req, res) => {
     await Order.findByIdAndDelete(orderId);
 
     // Log the deletion (optional - if you have audit logging)
-    console.log('Order deleted by admin:', orderInfo);
-
     res.status(200).json({
       success: true,
       message: 'Order deleted successfully',
@@ -1918,7 +1910,6 @@ const exportVatReport = async (req, res) => {
     });
   }
 };
-
 
 // ==================== MARKETING ====================
 

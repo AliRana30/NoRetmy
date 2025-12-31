@@ -38,7 +38,6 @@ const AddJobScreen: React.FC = () => {
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [currentSection, setCurrentSection] = useState(1);
 
-
   type PlanType = 'basic' | 'premium' | 'pro';
 
   interface PlanData {
@@ -54,40 +53,9 @@ const AddJobScreen: React.FC = () => {
     pro: { title: '', description: '', price: '', deliveryTime: '1' },
   });
 
-
   const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL;
 
   const router = useRouter();
-
-  console.log("Selected Option", selectedOption);
-
-
-  console.log(
-    'Title',
-    title,
-    'Category',
-    category,
-    'Subcategory',
-    subcategory,
-    'Description',
-    description,
-    'Keywords',
-    keywords,
-    'Why Choose Me',
-    whyChooseMe,
-    'Pricing Plans',
-    pricingPlan,
-    'Add Ons',
-    addons,
-    'FAQS',
-    faqs,
-    'Photos',
-    photos,
-    'job Status ',
-    jobStatus,
-    'Selected Option',
-    selectedOption,
-  );
 
   const upgradeOptions: UpgradeOptionType[] = [
     {
@@ -128,12 +96,7 @@ const AddJobScreen: React.FC = () => {
     });
   };
 
-  console.log(pricingPlanData)
-
-  const handleSubmit = async () => {
-    if (!title || title.trim().length < 10) {
-      showError('Title is required and must be at least 10 characters long.');
-      return;
+  return;
     }
 
     if (!description || description.trim().length < 100) {
@@ -197,8 +160,6 @@ const AddJobScreen: React.FC = () => {
         formData.append('faqs', JSON.stringify(faqs));
       }
 
-
-
       if (photos && photos.length > 0) {
         photos.forEach(photo => formData.append('images', photo));
       }
@@ -238,8 +199,7 @@ const AddJobScreen: React.FC = () => {
       }
 
       showSuccess('Gig created successfully!');
-      console.log('Job posted successfully:', response.data);
-    } catch (error) {
+      } catch (error) {
       console.error('Error posting job:', error);
       if (axios.isAxiosError(error)) {
         const message = error.response?.data?.message || 'Server returned an error.';
@@ -249,8 +209,6 @@ const AddJobScreen: React.FC = () => {
       }
     }
   };
-
-
 
   // Tooltip content for each section
   const tooltipContent: { [key: number]: { title: string; tips: string[] } } = {

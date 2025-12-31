@@ -526,7 +526,6 @@ const reEvaluateAllSellers = async () => {
       }
     }
     
-    console.log(`Re-evaluated ${updated} seller badges`);
     return updated;
   } catch (error) {
     console.error('Error in batch re-evaluation:', error);

@@ -21,10 +21,7 @@ const Freelancer = require('../models/Freelancer');
 
 async function initializeCollections() {
   try {
-    console.log('Connecting to MongoDB...');
     await mongoose.connect(process.env.MONGO_URI);
-    console.log('✅ MongoDB connected successfully!');
-
     // Get all model names
     const models = [
       { name: 'User', model: User },
@@ -45,8 +42,6 @@ async function initializeCollections() {
       { name: 'Freelancer', model: Freelancer },
     ];
 
-    console.log('\n📋 Initializing collections...\n');
-
     // Create collections if they don't exist
     const existingCollections = (await mongoose.connection.db.listCollections().toArray())
       .map(col => col.name);
@@ -56,33 +51,24 @@ async function initializeCollections() {
       
       if (!existingCollections.includes(collectionName)) {
         await mongoose.connection.db.createCollection(collectionName);
-        console.log(`✅ Created collection: ${collectionName}`);
-      } else {
-        console.log(`⏭️  Collection already exists: ${collectionName}`);
-      }
+        } else {
+        }
     }
 
-    console.log('\n✅ All collections initialized successfully!');
-    console.log('\n📊 Current collections in database:');
-    
     const collections = await mongoose.connection.db.listCollections().toArray();
     collections.forEach((col, index) => {
-      console.log(`   ${index + 1}. ${col.name}`);
-    });
+      });
 
     // Get count of documents in each collection
-    console.log('\n📈 Document counts:');
     for (const { name, model } of models) {
       const count = await model.countDocuments();
-      console.log(`   ${model.collection.collectionName}: ${count} documents`);
-    }
+      }
 
   } catch (error) {
     console.error('❌ Error initializing collections:', error);
     process.exit(1);
   } finally {
     await mongoose.connection.close();
-    console.log('\n🔌 Database connection closed.');
     process.exit(0);
   }
 }

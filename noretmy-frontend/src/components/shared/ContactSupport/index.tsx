@@ -39,10 +39,7 @@
 // //     };
 
 // //     const handleSubmit = async (e: React.FormEvent) => {
-// //         console.log("Here is submit form")
-// //         e.preventDefault();
-
-// //         if (!validateForm()) return;
+// //         // //         if (!validateForm()) return;
 
 // //         setIsSubmitting(true);
 // //         setSubmitStatus('idle');
@@ -62,9 +59,7 @@
 // //                 headers: { 'Content-Type': 'application/json' },
 // //             });
 
-// //             console.log("Form data",formData)
-// //             setSubmitStatus('success');
-// //             setFormData({ name: '', email: '', subject: '', message: '' });
+// //             // //             setFormData({ name: '', email: '', subject: '', message: '' });
 // //         } catch (error) {
 // //             setSubmitStatus('error');
 // //         } finally {
@@ -559,7 +554,4 @@
 // };
 
 // export default UserMessages;
-
-
-
 

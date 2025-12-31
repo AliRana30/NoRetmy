@@ -1,7 +1,6 @@
 // utils/currencyConversion.js
 const axios = require('axios');
 
-
 const getUsdToEurRate = async () => {
   try {
     const response = await axios.get(`https://v6.exchangerate-api.com/v6/${process.env.CURRENCY_CONVERSION_API_KEY}/latest/USD`);

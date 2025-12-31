@@ -121,7 +121,6 @@ export const getDocumentsColumns = (getTranslation) => {
 // Legacy export for backward compatibility - removed to fix React hooks error
 // export const documentsColumns = getDocumentsColumns();
 
-
 // Function to get orders columns with translations
 export const getOrdersColumns = (getTranslation) => {
   return [
@@ -170,7 +169,6 @@ export const getOrdersColumns = (getTranslation) => {
 // Legacy export for backward compatibility - removed to fix React hooks error
 // export const ordersColumns = getOrdersColumns();
 
-
 // Function to get jobs columns with translations
 export const getJobsColumns = (getTranslation) => {
   return [
@@ -196,8 +194,6 @@ export const getJobsColumns = (getTranslation) => {
       width: 160,
       renderCell: (params) => {
         // Log the jobsStatus value to check what's being passed
-        console.log('jobsStatus:', params.row.jobStatus);
-    
         // Ensure the jobsStatus is either "active" or "not active"
         const status = params.row.jobStatus && params.row.jobStatus.toLowerCase() === "active" ? "active" : "not active";
         
@@ -280,8 +276,6 @@ export const getWithdrawalRequestsColumns = (getTranslation) => {
       width: 160,
       renderCell: (params) => {
         // Log the status value to check what's being passed
-        console.log("status:", params.row.status);
-
         // Dynamically assign class based on status
         const status = params.row.status.toLowerCase();
         return (
@@ -333,15 +327,12 @@ export const getWithdrawalRequestsColumns = (getTranslation) => {
 
 // Handlers for actions
 const handleApprove = (requestId) => {
-  console.log(`Approving withdrawal request: ${requestId}`);
   // Add your API call or logic to approve the request
 };
 
 const handleReject = (requestId) => {
-  console.log(`Rejecting withdrawal request: ${requestId}`);
   // Add your API call or logic to reject the request
 };
-
 
 // Function to get notification columns with translations
 export const getNotificationColumns = (getTranslation) => {
@@ -379,17 +370,14 @@ export const getNotificationColumns = (getTranslation) => {
 // Legacy export for backward compatibility - removed to fix React hooks error
 // export const NotificationColumns = getNotificationColumns();
 
-
 const handleWarn = (userId) => {
   // Add your warning logic here
-  console.log(`Warn user with ID: ${userId}`);
-};
+  };
 
 // Function to handle blocking a user
 const handleBlock = (userId) => {
   // Add your blocking logic here
-  console.log(`Block user with ID: ${userId}`);
-};
+  };
 
 // ===== ADMIN-SPECIFIC COLUMNS =====
 
@@ -680,29 +668,17 @@ export const fetchData = async () => {
   }
 };
 
-
 export const fetchDocumentsData = async () => {
   try {
     const response = await axios.get(getApiUrl(API_CONFIG.ENDPOINTS.VERIFIED_SELLERS), {
       withCredentials: true
     });
 
-    console.log(response)
-
-    return response.data.map((user, index) => ({
-      _id: user._id,
-      fullName:user.fullName,
-      img: user.documentImages && user.documentImages[0] ? user.documentImages[0] : "https://default-avatar-url.com", // Default image if not provided
-      status: user.isWarned ? "Warned" : user.isBlocked ? "Blocked" : "Active", // Default status logic
-      isWarned: user.isWarned,
-      isBlocked: user.isBlocked,
-    }));
-  } catch (error) {
+    } catch (error) {
     console.error("Error fetching data:", error);
     handleApiError(error);
   }
 };
-
 
 export const getOrders = async () => {
   try {
@@ -768,10 +744,9 @@ export const getJobs = async () => {
   }
 };
 
-
 export const getUserJobs = async (userId) => {
   try {
-    console.log(userId); // Log the userId for debugging
+    // Log the userId for debugging
     const response = await axios.post(getApiUrl(API_CONFIG.ENDPOINTS.JOBS), {
       userId: userId,
     }, {
@@ -812,8 +787,6 @@ export const getUserJobs = async (userId) => {
   }
 };
 
-
-
 export const getSensitiveMessages = async () => {
   try {
     const response = await axios.get(getApiUrl(API_CONFIG.ENDPOINTS.SENSITIVE_MESSAGES), {
@@ -838,7 +811,6 @@ export const getSensitiveMessages = async () => {
   }
 };
 
-
 export const getNotifications = async () => {
   try {
     const response = await axios.get(getApiUrl(API_CONFIG.ENDPOINTS.ADMIN_NOTIFICATIONS) + '?limit=100', {
@@ -856,7 +828,6 @@ export const getNotifications = async () => {
   }
 };
 
-
 export const getAllWithdrawalRequests = async () => {
   try {
     const response = await axios.get(getApiUrl(API_CONFIG.ENDPOINTS.WITHDRAWALS), {
@@ -869,7 +840,6 @@ export const getAllWithdrawalRequests = async () => {
     handleApiError(error);
   }
 };
-
 
 // Function to get FAQ columns with translations
 export const getFaqColumns = (getTranslation) => {

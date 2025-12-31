@@ -9,16 +9,12 @@ const getCountryInfo = require('../services/locationService');
 const { americanCountryCodes, europeanCountryCodes } = require('../utils/country');
 const { sendResetPasswordEmail } = require('../services/emailService');
 
-
 const handleSignup = async (req, res, next) => {
   const { email, password, fullName, username, isSeller, isCompany } = req.body;
-
-  console.log('Signup request received:', { email, fullName, username, isSeller, isCompany });
 
   try {
     // Validate required fields (username is optional, will be auto-generated)
     if (!email || !password || !fullName) {
-      console.log('Validation failed: Missing required fields');
       return res.status(400).json({
         success: false,
         message: 'Missing required fields: email, password, and fullName are required',
@@ -26,10 +22,7 @@ const handleSignup = async (req, res, next) => {
     }
 
     // Fetch country information
-    console.log('Fetching country info...');
     const countryInfo = await getCountryInfo(req);
-    console.log('Country info received:', countryInfo);
-
     if (!countryInfo.success) {
       console.error('Country info fetch failed:', countryInfo);
       return res.status(400).json({
@@ -48,7 +41,6 @@ const handleSignup = async (req, res, next) => {
     //   });
     // }
 
-    console.log('Calling signUp service...');
     const signUpResponse = await signUp(
       email,
       password,
@@ -59,8 +51,6 @@ const handleSignup = async (req, res, next) => {
       countryInfo.country,
       countryInfo.countryCode
     );
-
-    console.log('SignUp response:', { success: signUpResponse.success, message: signUpResponse.message });
 
     if (!signUpResponse.success) {
       return res.status(400).json({
@@ -83,12 +73,10 @@ const handleSignup = async (req, res, next) => {
   }
 };
 
-
 const handleLogin = async (req, res) => {
   const { email, password } = req.body;
   try {
     const user = await signIn(email, password);
-    
 
     const token= sign({
       id:user.id,
@@ -107,7 +95,6 @@ const handleLogin = async (req, res) => {
     }).status(200)  
     .json(user); 
 
-    
   } catch (error) {
     const statusCode = error.statusCode || 500;
 
@@ -115,10 +102,8 @@ const handleLogin = async (req, res) => {
       success: false,
       message: error.message || 'Internal Server Error',
     });
-    console.log(error);
-  }
+    }
 };
-
 
 const handleVerifiedEmail = async (req, res) => {
   try {
@@ -134,8 +119,6 @@ const handleVerifiedEmail = async (req, res) => {
     res.status(500).send("Server error");
   }
 };
-
-
 
 const handleLogout = async (req, res) => {
   res.clearCookie("accessToken",{
@@ -166,9 +149,6 @@ const handleResendVerificationEmail = async (req, res,next) => {
   }
 };
 
-
-
-
 const handleForgotPassword = async (req, res) => {
   const { email } = req.body;
   try {
@@ -190,14 +170,12 @@ const handleForgotPassword = async (req, res) => {
   }
 };
 
-
 // const handleResetPassword = async (req, res) => {
 //   const { token, newPassword } = req.body;
 //   try {
 //     // Verify token
 //     const decoded = jwt.verify(token, process.env.JWT_KEY);
-//     console.log("Decoded token", decoded);
-//     const user = await User.findOne({ email: decoded.email });
+//     //     const user = await User.findOne({ email: decoded.email });
 
 //     if (!user) {
 //       return res.status(400).json({ message: "Invalid token or user does not exist" });
@@ -214,13 +192,10 @@ const handleForgotPassword = async (req, res) => {
 //   }
 // };
 
-
 const { validatePassword, getPasswordRequirements } = require('../utils/passwordValidation');
 
 const handleResetPassword = async (req, res) => {
   const { token, password } = req.body;
-  console.log("Received reset request:", { token, passwordLength: password?.length });
-
   try {
     // Validate new password strength
     const passwordValidation = validatePassword(password);
@@ -232,27 +207,18 @@ const handleResetPassword = async (req, res) => {
       });
     }
     
-    console.log("Verifying token...");
     const decoded = jwt.verify(token, process.env.JWT_KEY);
-    console.log("Token decoded successfully:", decoded);
-
     const user = await User.findOne({ email: decoded.email });
-    console.log("User found in database:", user ? user.email : "User not found");
-
     if (!user) {
-      console.log("Error: User does not exist or invalid token");
       return res.status(400).json({ message: "Invalid token or user does not exist" });
     }
 
-    console.log("Hashing new password...");
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
     
-    console.log("Updating user password...");
     user.password = hashedPassword;
     await user.save();
 
-    console.log("Password reset successful!");
     res.json({ message: "Password reset successful. You can now log in." });
 
   } catch (error) {
@@ -269,7 +235,5 @@ const handleResetPassword = async (req, res) => {
     res.status(400).json({ message: "Invalid or expired token", error: error.message });
   }
 };
-
-
 
 module.exports = { handleSignup, handleLogin, handleLogout, handleEmailVerification,handleVerifiedEmail, handleResendVerificationEmail,getCountryInfo,handleForgotPassword,handleResetPassword };

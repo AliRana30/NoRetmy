@@ -7,7 +7,6 @@ const { upload } = require('../controllers/uploadController');
 // const storage = multer.memoryStorage(); 
 // const upload = multer({ storage });
 
-
 // Route to get seller statistics by sellerId
 router.get('/stats', verifyToken,checkRole(["seller"]),getSellerStats); // :sellerId is a dynamic parameter
 router.post('/project',verifyToken, upload, createProject)

@@ -43,7 +43,6 @@ const AdminUsersList = () => {
       // Try admin API first, fallback to regular fetch
       try {
         const response = await getAdminUsers({});
-        console.log('Admin API response:', response);
         if (response?.data) {
           setData(response.data);
         } else if (Array.isArray(response)) {
@@ -53,7 +52,6 @@ const AdminUsersList = () => {
           throw new Error('No data in response');
         }
       } catch (adminErr) {
-        console.log('Admin API failed, falling back to regular user fetch:', adminErr.message);
         const users = await fetchData();
         setData(users);
       }

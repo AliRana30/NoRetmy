@@ -72,8 +72,6 @@ const createReview = async (req, res, next) => {
       next(error);
     }
   };
-  
-  
 
  const getReviews=async(req,res,next)=>{
     try {
@@ -84,14 +82,11 @@ const createReview = async (req, res, next) => {
         next(error);
     }
 
-
-
 }
 
  const deleteReview=async(req,res,next)=>{
     try {
-        
-        
+
     } catch (error) {
         next(error);
     }

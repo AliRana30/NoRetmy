@@ -27,8 +27,6 @@ const translateText = async (texts, toLang) => {
   }
 };
 
-
-
 const translateJSON = async (content, toLang) => {
   try {
     const response = await axios({
@@ -54,7 +52,5 @@ const translateJSON = async (content, toLang) => {
     return content; 
   }
 };
-
-
 
 module.exports = {translateJSON,translateText};

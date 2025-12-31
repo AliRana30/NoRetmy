@@ -112,7 +112,6 @@ const ViewRequirements: React.FC<ViewRequirementsProps> = ({
   </div>
 )}
 
-
     </div>
   );
 };

@@ -5,7 +5,6 @@ const Reviews = require('../models/Review');
 const Job = require('../models/Job');
 const { uploadDocuments } = require("./uploadController");
 
-
 const getAllUsers = async (req, res) => {
     try {
       const users = await User.find(); // Fetch all users from the database
@@ -40,7 +39,6 @@ const deleteUser = async (req, res, next) => {
     }
 };
 
-
 const getTotalUsers = async (req, res) => {
     try {
         const totalUsers = await User.countDocuments({});
@@ -49,7 +47,6 @@ const getTotalUsers = async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 };
-
 
 const getVerifiedSellers = async (req, res) => {
   try {
@@ -102,8 +99,6 @@ const getVerifiedSellers = async (req, res) => {
     });
   }
 };
-
-
 
 // Warn User Controller
 const warnUser = async (req, res) => {
@@ -173,10 +168,6 @@ const blockUser = async (req, res) => {
   }
 };
 
-
-
-
-
 // Route to Create or Update User Profile
 
 // Controller to create or update user profile
@@ -214,8 +205,6 @@ const createOrUpdateProfile = async (req, res) => {
   }
 };
 
-
-
 // const updateSingleAttribute = async (req, res) => {
 //   try {
 //     const { userId } = req;
@@ -249,7 +238,6 @@ const createOrUpdateProfile = async (req, res) => {
 //   }
 // };
 
-
 const updateSingleAttribute = async (req, res) => {
   try {
     const { userId } = req;
@@ -258,12 +246,9 @@ const updateSingleAttribute = async (req, res) => {
 
     // Check if a profile picture file is uploaded
     if (req.files ) {
-      console.log("Uploading profile picture...");
       const [uploadedUrl] = await uploadDocuments(req);
       profilePictureUrl = uploadedUrl; 
     }
-
-    console.log(profilePictureUrl);
 
     // Fields that belong to User model vs UserProfile model
     const userFields = ['fullName', 'username', 'email', 'sellerType'];
@@ -332,8 +317,6 @@ const updateSingleAttribute = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
-
-
 
 const getSellerData = async (req, res) => {
   try {
@@ -418,7 +401,6 @@ const getSellerData = async (req, res) => {
   }
 };
 
-
  const getUserWithProjects = async (req, res) => {
   try {
     const { username } = req.params;
@@ -491,7 +473,6 @@ const getSellerData = async (req, res) => {
   }
 };
 
-
 const updateDocumentStatus = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -506,7 +487,6 @@ const updateDocumentStatus = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: 'User not found.' });
     }
-
 
     if (user.documentStatus !== 'pending') {
       return res.status(400).json({ message: 'Document status must be "pending" to update.' });
@@ -527,7 +507,6 @@ const updateDocumentStatus = async (req, res) => {
     res.status(500).json({ message: 'Internal server error.' });
   }
 };
-
 
 // ============ FAVORITES FUNCTIONS ============
 
@@ -1080,6 +1059,5 @@ const getClientProfile = async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 };
-
 
 module.exports = { deleteUser ,getTotalUsers,getAllUsers, warnUser, blockUser,getVerifiedSellers,updateSingleAttribute,createOrUpdateProfile,getSellerData,getUserWithProjects,updateDocumentStatus, getFavorites, addToFavorites, removeFromFavorites, toggleFavorite, checkFavorite, searchFreelancers, getFreelancerProfile, getClientProfile};

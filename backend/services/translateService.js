@@ -54,7 +54,6 @@ const translateText = async (text, sourceLang, targetLang) => {
   }
 };
 
-
 const translateJob = async (job, lang) => {
   // Skip translation if language is English or job is invalid
   if (!job || lang === 'en') {

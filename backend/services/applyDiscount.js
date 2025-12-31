@@ -37,5 +37,4 @@ const applyDiscountUtil = (jobs) => {
   };
   
 module.exports = { applyDiscountUtil };
-  
 

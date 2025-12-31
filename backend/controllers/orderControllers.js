@@ -31,8 +31,6 @@ const badgeService = require("../services/badgeService");
 // Notification service for user notifications
 const notificationService = require("../services/notificationService");
 
-
-
 // Controller to create a new order
 // const createOrder = async (req, res) => {
 //   try {
@@ -87,7 +85,6 @@ const notificationService = require("../services/notificationService");
 //   }
 // };
 
-
 const createOrder = async (req, res) => {
   try {
     const { userId } = req;
@@ -136,7 +133,6 @@ const createOrder = async (req, res) => {
       return res.status(404).json({ message: "Gig not found." });
     }
 
-
     let orderPrice = price;
 
     if (!isMilestone && !isCustomOrder) {
@@ -145,19 +141,9 @@ const createOrder = async (req, res) => {
       }
     }
 
-
-
-    console.log(orderPrice)
-
     const feeAndTax = orderPrice * PLATFORM_FEE_RATE;
-    console.log("Fee and Tax", feeAndTax)
-
-
-    user = await User.findById(userId);
-
     const buyerId = (isMilestone || isCustomOrder) ? custom_BuyerId : userId;
     const buyerEmail = (isMilestone || isCustomOrder) ? user.email : user.email;
-
 
     let selectedPlan = null;
     if (price == gig.pricingPlan.basic.price) {
@@ -174,8 +160,6 @@ const createOrder = async (req, res) => {
       deliveryDate.setDate(deliveryDate.getDate() + selectedPlan.deliveryTime);
 
     }
-
-
 
     const newOrder = new Order({
       gigId: gigId,
@@ -198,12 +182,6 @@ const createOrder = async (req, res) => {
     if (!isMilestone && !isCustomOrder) {
 
       const rate = await getVatRate(userId);
-      console.log("Order Price", orderPrice);
-      console.log("rate", rate)
-
-      const totalAmountWithFeesAndTax = getAmountWithFeeAndTax(orderPrice, rate);
-
-      console.log("totalAmountWithFeesAndTax", totalAmountWithFeesAndTax);
       const additionalData = { orderId: savedOrder._id.toString(), userId, vatRate: rate, discount: gig.discount };
 
       const paymentIntentResponse = await createCustomerAndPaymentIntentUtil(totalAmountWithFeesAndTax, buyerEmail, "order_payment", additionalData);
@@ -216,8 +194,6 @@ const createOrder = async (req, res) => {
     }
 
     if (isCustomOrder || isMilestone) {
-      console.log("Here in if condition");
-
       const requestDetails = {
         _id: savedOrder._id,
         details: "ddsadsa",
@@ -244,11 +220,9 @@ const createOrder = async (req, res) => {
           lastMessage: `New order started for: ${gig.title}`,
         });
         await newConversation.save();
-        console.log('Auto-created conversation for order:', savedOrder._id);
-      }
+        }
     } catch (convError) {
-      console.log('Conversation already exists or error creating:', convError.message);
-    }
+      }
 
     const response = {
       message: "Order created successfully",
@@ -265,7 +239,6 @@ const createOrder = async (req, res) => {
     res.status(500).json({ message: "Server error. Please try again later." });
   }
 };
-
 
 // Order Requiremnts submission by buyer
 const addOrderRequirement = async (req, res) => {
@@ -291,9 +264,7 @@ const addOrderRequirement = async (req, res) => {
     // Handle file uploads
     let uploadedFiles = [];
     if (req.files && req.files.length > 0) {
-      // console.log(req.files);
-      const uploadResult = await uploadFiles(req);
-      console.log("Upload Result", uploadResult);
+      // const uploadResult = await uploadFiles(req);
       if (uploadResult.success) {
         uploadedFiles = uploadResult.urls; // Store uploaded file URLs
       } else {
@@ -324,8 +295,7 @@ const addOrderRequirement = async (req, res) => {
         gig?.title || 'Order'
       );
     } catch (notifError) {
-      console.log('Failed to send requirements notification:', notifError.message);
-    }
+      }
 
     return res.status(200).json({
       message: 'Requirements and attachments added successfully',
@@ -337,7 +307,6 @@ const addOrderRequirement = async (req, res) => {
   }
 };
 
-
 const startOrder = async (req, res) => {
   try {
     const { userId } = req;
@@ -348,11 +317,7 @@ const startOrder = async (req, res) => {
 
     }
     // Find the order by ID
-    console.log("Received orderId:", orderId);
     const order = await Order.findById(orderId);
-    console.log("Fetched order:", order);
-
-
     if (!order) {
       return res.status(404).json({ error: "Order not found" });
     }
@@ -397,8 +362,7 @@ const startOrder = async (req, res) => {
         gig?.title || 'Order'
       );
     } catch (notifError) {
-      console.log('Failed to send order started notification:', notifError.message);
-    }
+      }
 
     res.status(200).json({ message: "Order started successfully", order });
   } catch (error) {
@@ -406,7 +370,6 @@ const startOrder = async (req, res) => {
     res.status(500).json({ error: "An error occurred while starting the order" });
   }
 };
-
 
 const deliverOrder = async (req, res) => {
   try {
@@ -435,19 +398,13 @@ const deliverOrder = async (req, res) => {
 
     let uploadedFiles = [];
     if (req.files && req.files.length > 0) {
-      // console.log(req.files);
-      const uploadResult = await uploadFiles(req);
-      console.log("Upload Result", uploadResult);
+      // const uploadResult = await uploadFiles(req);
       if (uploadResult.success) {
         uploadedFiles = uploadResult.urls.map(file => file.url);
       } else {
         return res.status(500).json({ message: 'File upload failed', error: uploadResult.error });
       }
     }
-
-    console.log(uploadedFiles);
-
-
 
     const seller = await User.findById(userId);
 
@@ -480,8 +437,7 @@ const deliverOrder = async (req, res) => {
       const paymentMilestoneService = require('../services/paymentMilestoneService');
       await paymentMilestoneService.processDeliveryMilestone(orderId, userId);
     } catch (milestoneError) {
-      console.log('Failed to process delivery milestone:', milestoneError.message);
-    }
+      }
 
     // Send notification to buyer
     try {
@@ -501,11 +457,9 @@ const deliverOrder = async (req, res) => {
           gigTitle: gig?.title || 'Your Order',
           sellerName: seller?.username || 'The freelancer',
           deliveryDescription
-        }).catch(err => console.log('Failed to send delivery email:', err.message));
-      }
+        }).catch(err => }
     } catch (notifError) {
-      console.log('Failed to send order delivered notification:', notifError.message);
-    }
+      }
 
     res.status(200).json({ message: "Order delivered successfully", order });
   } catch (error) {
@@ -513,8 +467,6 @@ const deliverOrder = async (req, res) => {
     res.status(500).json({ error: "An error occurred while delivering the order" });
   }
 };
-
-
 
 const requestRevision = async (req, res) => {
   try {
@@ -540,9 +492,7 @@ const requestRevision = async (req, res) => {
 
     let uploadedFiles = [];
     if (req.files && req.files.length > 0) {
-      // console.log(req.files);
-      const uploadResult = await uploadFiles(req);
-      console.log("Upload Result", uploadResult);
+      // const uploadResult = await uploadFiles(req);
       if (uploadResult.success) {
         uploadedFiles = uploadResult.urls.map(file => file.url);
       } else {
@@ -550,11 +500,8 @@ const requestRevision = async (req, res) => {
       }
     }
 
-    console.log(uploadedFiles);
-
     order.status = "requestedRevision";
     order.revisionReason = reason;
-
 
     const statusUpdate = {
       status: "requestedRevision",
@@ -575,8 +522,7 @@ const requestRevision = async (req, res) => {
         reason
       );
     } catch (notifError) {
-      console.log('Failed to send revision requested notification:', notifError.message);
-    }
+      }
 
     res.status(200).json({ message: "Revision requested successfully", order });
   } catch (error) {
@@ -584,7 +530,6 @@ const requestRevision = async (req, res) => {
     res.status(500).json({ error: "An error occrured while creating revison request!" });
   }
 };
-
 
 const acceptOrder = async (req, res) => {
   try {
@@ -648,8 +593,6 @@ const acceptOrder = async (req, res) => {
       { new: true } // Return the updated document
     );
 
-    console.log('Updated gig:', updatedGig);
-    
     // RELEASE ESCROW FUNDS: Move from pending to available
     try {
       const { getSellerPayout } = require('../services/priceUtil');
@@ -663,8 +606,7 @@ const acceptOrder = async (req, res) => {
         seller.revenue.available += amountToRelease;
         seller.revenue.pending = Math.max(0, seller.revenue.pending - amountToRelease);
         await seller.save();
-        console.log(`[Escrow Release] Order ${order._id}: $${amountToRelease} released to ${seller.username}`);
-      }
+        }
       
       // Also update Freelancer model
       const freelancer = await Freelancer.findOne({ userId: order.sellerId });
@@ -699,8 +641,7 @@ const acceptOrder = async (req, res) => {
       // Update seller badge metrics
       await badgeService.updateSellerMetricsOnOrderComplete(order.sellerId, order);
     } catch (profileError) {
-      console.log('Error updating seller profile:', profileError.message);
-    }
+      }
 
     await order.save();
 
@@ -728,11 +669,9 @@ const acceptOrder = async (req, res) => {
           gigTitle: gig?.title || 'Order',
           amount: amountEarned,
           isForSeller: true
-        }).catch(err => console.log('Failed to send completion email:', err.message));
-      }
+        }).catch(err => }
     } catch (notifError) {
-      console.log('Failed to send order completed notification:', notifError.message);
-    }
+      }
 
     res.status(200).json({ 
       message: "Order accepted successfully! You can now proceed to payment and leave a review.", 
@@ -743,7 +682,6 @@ const acceptOrder = async (req, res) => {
     res.status(500).json({ error: "An error occrured while creating revison request!" });
   }
 };
-
 
 const confirmMilestoneOrCustomOrder = async (req, res) => {
   try {
@@ -776,7 +714,6 @@ const confirmMilestoneOrCustomOrder = async (req, res) => {
       return res.status(400).json({ message: "Invalid order: price not found." });
     }
 
-
     // Get userId from the request and query the user for email
     const user = await User.findById(userId);
 
@@ -789,7 +726,6 @@ const confirmMilestoneOrCustomOrder = async (req, res) => {
     // Get Vat from vat Util
     const rate = await getVatRate(userId);
     const totalAmountWithFeesAndTax = getAmountWithFeeAndTax(price, rate);
-
 
     const orderDetails = { userId, orderId, vatRate: rate }
 
@@ -815,7 +751,6 @@ const confirmMilestoneOrCustomOrder = async (req, res) => {
     res.status(500).json({ message: "Server error. Please try again later." });
   }
 };
-
 
 const getCustomerOrderRequests = async (req, res) => {
   try {
@@ -891,13 +826,10 @@ const getCustomerOrderRequests = async (req, res) => {
   }
 };
 
-
-
 // Update Milestone Status
 const updateMilestoneStatus = async (req, res) => {
   try {
     const { userId } = req;
-    console.log("req")
     const { orderId, milestoneId, newStatus, deliveryDescription, reason } = req.body;
 
     if (!userId) {
@@ -944,16 +876,13 @@ const updateMilestoneStatus = async (req, res) => {
 
     let uploadedFiles = [];
     if (req.files && req.files.length > 0) {
-      // console.log(req.files);
-      const uploadResult = await uploadFiles(req);
-      console.log("Upload Result", uploadResult);
+      // const uploadResult = await uploadFiles(req);
       if (uploadResult.success) {
         uploadedFiles = uploadResult.urls.map(file => file.url);
       } else {
         return res.status(500).json({ message: 'File upload failed', error: uploadResult.error });
       }
     }
-
 
     const statusUpdate = {
       status: newStatus,
@@ -968,7 +897,6 @@ const updateMilestoneStatus = async (req, res) => {
     }
     milestone.statusHistory.push(statusUpdate);
 
-
     milestone.status = newStatus;
     await order.save();
 
@@ -981,7 +909,6 @@ const updateMilestoneStatus = async (req, res) => {
 
     const statusMessage = statusMessages[newStatus] || `Milestone status updated to '${newStatus}'.`;
 
-
     return res.status(200).json({
       message: statusMessage,
       milestone,
@@ -991,8 +918,6 @@ const updateMilestoneStatus = async (req, res) => {
     res.status(500).json({ message: 'Internal server error.' });
   }
 };
-
-
 
 const createOrderPaypal = async (req, res) => {
   const { amount, currency = 'USD' } = req.body;
@@ -1076,8 +1001,6 @@ const captureOrder = async (req, res) => {
   }
 };
 
-
-
 const getOrders = async (req, res) => {
   try {
     const orders = await Order.find(); // Fetch all orders from the database
@@ -1090,7 +1013,6 @@ const getOrders = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: "Server Error", error: error.message });
   }
-
 
 }
 
@@ -1149,7 +1071,6 @@ const getUserOrders = async (req, res) => {
   }
 };
 
-
 const updateOrderPaymentStatus = async (req, res) => {
   try {
     const { orderId, paymentIntentId } = req.body;
@@ -1171,12 +1092,9 @@ const updateOrderPaymentStatus = async (req, res) => {
   }
 };
 
-
 const getSingleOrderDetail = async (req, res) => {
   const { id } = req.params;
   const { userId } = req;
-
-  console.log("userId", userId);
 
   try {
     const order = await Order.findById(id).exec();
@@ -1238,7 +1156,6 @@ const getSingleOrderDetail = async (req, res) => {
 
     // Prepare user details if available
 
-    console.log("usserDetails", userDetails);
     const userDetailsResponse = userDetails
       ? {
         userName: userDetails.fullName,
@@ -1262,7 +1179,6 @@ const getSingleOrderDetail = async (req, res) => {
     return res.status(500).json({ message: 'Internal Server Error' });
   }
 };
-
 
 const getPaymentsSummary = async (req, res) => {
   try {
@@ -1297,7 +1213,6 @@ const getPaymentsSummary = async (req, res) => {
   }
 };
 
-
 const updateOrders = async (req, res) => {
   try {
     const orders = await Order.find();
@@ -1322,7 +1237,7 @@ const updateOrders = async (req, res) => {
       }
 
       if (Object.keys(updateFields).length > 0) {
-        console.log(`Updating Order ID: ${order._id}`, updateFields); // Debugging
+        // Debugging
 
         await Order.updateOne(
           { _id: order._id },
@@ -1355,14 +1270,6 @@ const createOrderInvitation = async (req, res) => {
     }
 
     // Debug logging for own gig check
-    console.log('Order Invitation Debug:', {
-      gigSellerId: gig.sellerId,
-      requestUserId: userId,
-      gigSellerIdType: typeof gig.sellerId,
-      requestUserIdType: typeof userId,
-      isEqual: gig.sellerId?.toString() === userId?.toString()
-    });
-
     // Check if user is trying to order their own gig
     // Use toString() to handle both ObjectId and string comparisons
     if (gig.sellerId?.toString() === userId?.toString()) {
@@ -1438,16 +1345,8 @@ const createOrderInvitation = async (req, res) => {
       }]
     });
 
-    console.log('Creating Invitation - Saving Order with:', {
-      sellerId: gig.sellerId,
-      buyerId: userId,
-      gigTitle: gig.title
-    });
-
     const savedInvitation = await newInvitation.save();
     
-    console.log('Invitation Saved - ID:', savedInvitation._id);
-
     // Auto-create conversation between buyer and seller
     try {
       const conversationId = gig.sellerId + userId;
@@ -1491,8 +1390,7 @@ const createOrderInvitation = async (req, res) => {
       await orderMessage.save();
       
     } catch (convError) {
-      console.log('Error with conversation:', convError.message);
-    }
+      }
 
     // Send notification to seller about new order invitation
     try {
@@ -1509,8 +1407,7 @@ const createOrderInvitation = async (req, res) => {
         }
       });
     } catch (notifError) {
-      console.log('Failed to send order invitation notification:', notifError.message);
-    }
+      }
 
     res.status(201).json({
       message: "Order invitation sent successfully! The seller will review and respond to your request.",
@@ -1564,8 +1461,6 @@ const acceptInvitation = async (req, res) => {
     const { userId } = req;
     const { invitationId } = req.body;
 
-    console.log('acceptInvitation - userId:', userId, 'invitationId:', invitationId);
-
     if (!invitationId) {
       return res.status(400).json({ message: "Invitation ID is required." });
     }
@@ -1576,14 +1471,6 @@ const acceptInvitation = async (req, res) => {
       return res.status(404).json({ message: "Invitation not found." });
     }
 
-    console.log('acceptInvitation DEBUG:', {
-      typeOfInvitationSellerId: typeof invitation.sellerId,
-      invitationSellerId: invitation.sellerId,
-      typeOfRequestUserId: typeof userId,
-      requestUserId: userId,
-      invitationId: invitationId
-    });
-
     const sellerIdStr = String(invitation.sellerId).trim().toLowerCase();
     const userIdStr = String(userId).trim().toLowerCase();
     
@@ -1592,11 +1479,6 @@ const acceptInvitation = async (req, res) => {
     const isAdmin = userRole === 'admin';
 
     if (sellerIdStr !== userIdStr && !isAdmin) {
-      console.log('acceptInvitation - FAILED: sellerId mismatch', { 
-        recordSellerId: sellerIdStr, 
-        requestUserId: userIdStr,
-        match: sellerIdStr === userIdStr
-      });
       return res.status(403).json({ 
         message: `Unauthorized. This invitation was sent to seller ${sellerIdStr}, but you are logged in as ${userIdStr}.`,
         debug: { 
@@ -1668,8 +1550,7 @@ const acceptInvitation = async (req, res) => {
         { 'orderData.invitationStatus': 'accepted', 'orderData.status': 'accepted' }
       );
     } catch (err) {
-      console.log('Error updating conversation:', err.message);
-    }
+      }
 
     res.status(200).json({
       message: "Invitation accepted! The buyer can now proceed with payment.",
@@ -1687,27 +1568,11 @@ const rejectInvitation = async (req, res) => {
     const { userId } = req;
     const { invitationId, reason } = req.body;
 
-    console.log('Reject Invitation Debug:', {
-      userId,
-      invitationId,
-      reason
-    });
-
     const invitation = await Order.findById(invitationId);
     
     if (!invitation) {
       return res.status(404).json({ message: "Invitation not found." });
     }
-
-    console.log('Invitation found:', {
-      invitationSellerId: invitation.sellerId,
-      invitationBuyerId: invitation.buyerId,
-      requestUserId: userId,
-      sellerIdType: typeof invitation.sellerId,
-      userIdType: typeof userId,
-      sellerIdMatch: invitation.sellerId?.toString() === userId?.toString(),
-      buyerIdMatch: invitation.buyerId?.toString() === userId?.toString()
-    });
 
     // Allow both seller and buyer to reject/cancel the invitation
     const isSeller = invitation.sellerId?.toString() === userId?.toString();
@@ -1763,8 +1628,7 @@ const rejectInvitation = async (req, res) => {
         { 'orderData.invitationStatus': 'rejected', 'orderData.status': 'cancelled' }
       );
     } catch (err) {
-      console.log('Error updating conversation:', err.message);
-    }
+      }
 
     res.status(200).json({
       message: "Invitation rejected.",
@@ -2101,8 +1965,7 @@ const submitReview = async (req, res) => {
         await sellerProfile.save();
       }
     } catch (profileError) {
-      console.log('Error updating seller profile:', profileError.message);
-    }
+      }
 
     res.status(201).json({
       message: "Review submitted successfully!",
@@ -2248,8 +2111,7 @@ const approveDelivery = async (req, res) => {
           "revenue.pending": -extensionRevenueSum
         }
       });
-      console.log(`✓ Completed Order ${order._id} via approveDelivery: Base $${baseEarnings}, Extensions $${extensionRevenueSum}`);
-    } catch (revError) {
+      } catch (revError) {
       console.error('Error updating seller revenue in approveDelivery:', revError);
     }
 
@@ -2282,8 +2144,7 @@ const approveDelivery = async (req, res) => {
         }
       );
     } catch (msgError) {
-      console.log('Error creating completion message:', msgError.message);
-    }
+      }
 
     // Update freelancer stats
     try {
@@ -2294,15 +2155,13 @@ const approveDelivery = async (req, res) => {
         await sellerProfile.save();
       }
     } catch (profileError) {
-      console.log('Error updating seller profile:', profileError.message);
-    }
+      }
 
     // Update seller badge metrics
     try {
       await badgeService.updateSellerMetricsOnOrderComplete(order.sellerId, order);
     } catch (badgeError) {
-      console.log('Error updating seller badge:', badgeError.message);
-    }
+      }
 
     res.status(200).json({
       message: "Order completed successfully! You can now leave a review.",
@@ -2490,8 +2349,7 @@ const advanceOrderStatus = async (req, res) => {
           }
         });
         
-        console.log(`✓ Completed Order ${order._id} via advanceStatus: Base $${baseEarnings}, Extensions $${extensionRevenueSum}`);
-      } catch (revError) {
+        } catch (revError) {
         console.error('Error updating seller revenue in advanceOrderStatus:', revError);
       }
 
@@ -2663,8 +2521,7 @@ const requestTimelineExtension = async (req, res) => {
         await conversation.save();
       }
     } catch (convError) {
-      console.log('Error updating conversation:', convError.message);
-    }
+      }
 
     res.status(200).json({
       message: `Timeline extended by ${additionalDays} day(s) successfully!`,

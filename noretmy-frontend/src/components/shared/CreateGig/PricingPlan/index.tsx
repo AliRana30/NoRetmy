@@ -30,7 +30,6 @@ const PricingPlan: React.FC<PricingPlanProps> = ({
   const formData = pricingData;
   const setFormData = setPricingData;
 
-
   const plans = [
     {
       name: 'basic' as PlanType,

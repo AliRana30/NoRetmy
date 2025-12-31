@@ -19,18 +19,13 @@ const handleStripeWebhook = async (req, res) => {
   const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
   let event;
 
-  console.log('[Stripe Webhook] Received webhook request');
-
   try {
     // Verify webhook signature
     event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
-    console.log('[Stripe Webhook] Event verified:', event.type, 'ID:', event.id);
-
     // Process event based on type
     const result = await processWebhookEvent(event);
     
     if (result.success) {
-      console.log('[Stripe Webhook] Event processed successfully:', event.type);
       res.status(200).json({ received: true, processed: true });
     } else {
       console.warn('[Stripe Webhook] Event processed with warning:', result.message);
@@ -109,7 +104,6 @@ const processWebhookEvent = async (event) => {
       return await handleAccountUpdated(object);
 
     default:
-      console.log(`[Stripe Webhook] Unhandled event type: ${type}`);
       return { success: true, message: `Unhandled event type: ${type}` };
   }
 };
@@ -121,13 +115,10 @@ const handlePaymentIntentSucceeded = async (paymentIntent) => {
   const { id, amount_received, payment_method, metadata } = paymentIntent;
   const { paymentType, orderId, userId, gigId, promotionPlan } = metadata;
 
-  console.log('[Webhook] payment_intent.succeeded:', id, 'Type:', paymentType);
-
   try {
     // Idempotency check
     const existingOrder = await Order.findOne({ payment_intent: id, isPaid: true });
     if (existingOrder && paymentType === 'order_payment') {
-      console.log('[Webhook] Payment already processed for order:', existingOrder._id);
       return { success: true, message: 'Already processed' };
     }
 
@@ -233,8 +224,7 @@ const processOrderPayment = async (paymentIntent) => {
       await freelancer.save();
     }
 
-    console.log(`[Webhook] $${netEarnings} added to pending for ${seller.username}`);
-  }
+    }
 
   // Send notifications
   if (buyer && seller && gig) {
@@ -269,7 +259,6 @@ const processOrderPayment = async (paymentIntent) => {
     ]);
   }
 
-  console.log('[Webhook] Order payment processed:', order._id);
   return { success: true };
 };
 
@@ -284,7 +273,6 @@ const processPromotionPayment = async (paymentIntent) => {
   // Idempotency check
   const existingPurchase = await PromotionPurchase.findOne({ stripePaymentIntentId: id });
   if (existingPurchase) {
-    console.log('[Webhook] Promotion already processed:', id);
     return { success: true, message: 'Already processed' };
   }
 
@@ -333,7 +321,6 @@ const processPromotionPayment = async (paymentIntent) => {
     link: '/promote-gigs'
   });
 
-  console.log('[Webhook] Promotion payment processed:', promotionPurchase._id);
   return { success: true };
 };
 
@@ -352,8 +339,6 @@ const processTimelineExtensionPayment = async (paymentIntent) => {
 const handlePaymentIntentFailed = async (paymentIntent) => {
   const { id, last_payment_error, metadata } = paymentIntent;
   const { orderId, userId } = metadata;
-
-  console.log('[Webhook] payment_intent.payment_failed:', id);
 
   try {
     // Update order status
@@ -431,8 +416,6 @@ const handlePaymentIntentFailed = async (paymentIntent) => {
 const handlePaymentIntentCanceled = async (paymentIntent) => {
   const { id, metadata } = paymentIntent;
   
-  console.log('[Webhook] payment_intent.canceled:', id);
-
   const order = await Order.findOneAndUpdate(
     { payment_intent: id },
     {
@@ -457,8 +440,6 @@ const handlePaymentIntentCanceled = async (paymentIntent) => {
 const handlePaymentIntentRequiresAction = async (paymentIntent) => {
   const { id, metadata } = paymentIntent;
   
-  console.log('[Webhook] payment_intent.requires_action:', id);
-
   // Notify user that action is required
   if (metadata.userId) {
     await notificationService.createNotification({
@@ -477,7 +458,6 @@ const handlePaymentIntentRequiresAction = async (paymentIntent) => {
  * Handle successful charge
  */
 const handleChargeSucceeded = async (charge) => {
-  console.log('[Webhook] charge.succeeded:', charge.id);
   // Most logic handled in payment_intent.succeeded
   return { success: true };
 };
@@ -488,8 +468,6 @@ const handleChargeSucceeded = async (charge) => {
 const handleChargeCaptured = async (charge) => {
   const { id, payment_intent, amount_captured, metadata } = charge;
   
-  console.log('[Webhook] charge.captured:', id, 'Amount:', amount_captured);
-
   // Update order with capture info
   const order = await Order.findOneAndUpdate(
     { payment_intent },
@@ -516,8 +494,6 @@ const handleChargeCaptured = async (charge) => {
 const handleChargeRefunded = async (charge) => {
   const { id, payment_intent, amount_refunded, metadata } = charge;
   
-  console.log('[Webhook] charge.refunded:', id, 'Amount:', amount_refunded);
-
   const order = await Order.findOneAndUpdate(
     { stripeChargeId: id },
     {
@@ -570,7 +546,6 @@ const handleChargeRefunded = async (charge) => {
  * Handle failed charge
  */
 const handleChargeFailed = async (charge) => {
-  console.log('[Webhook] charge.failed:', charge.id);
   // Handled in payment_intent.payment_failed
   return { success: true };
 };
@@ -581,8 +556,6 @@ const handleChargeFailed = async (charge) => {
 const handleCheckoutSessionCompleted = async (session) => {
   const { id, payment_intent, metadata, customer_email } = session;
   
-  console.log('[Webhook] checkout.session.completed:', id);
-
   // Most logic handled via payment_intent webhook
   return { success: true };
 };
@@ -593,8 +566,6 @@ const handleCheckoutSessionCompleted = async (session) => {
 const handleCheckoutSessionExpired = async (session) => {
   const { id, metadata } = session;
   
-  console.log('[Webhook] checkout.session.expired:', id);
-
   if (metadata.orderId) {
     await Order.findByIdAndUpdate(metadata.orderId, {
       paymentStatus: 'failed',
@@ -618,8 +589,6 @@ const handleCheckoutSessionExpired = async (session) => {
 const handlePayoutPaid = async (payout) => {
   const { id, amount, destination, metadata } = payout;
   
-  console.log('[Webhook] payout.paid:', id, 'Amount:', amount);
-
   // Find freelancer by Stripe account
   const freelancer = await Freelancer.findOne({ stripeAccountId: destination });
   
@@ -657,8 +626,6 @@ const handlePayoutPaid = async (payout) => {
 const handlePayoutFailed = async (payout) => {
   const { id, amount, failure_message, destination } = payout;
   
-  console.log('[Webhook] payout.failed:', id);
-
   const freelancer = await Freelancer.findOne({ stripeAccountId: destination });
   
   if (freelancer) {
@@ -696,8 +663,6 @@ const handlePayoutFailed = async (payout) => {
 const handleTransferCreated = async (transfer) => {
   const { id, amount, destination, metadata } = transfer;
   
-  console.log('[Webhook] transfer.created:', id);
-
   if (metadata.orderId) {
     await Order.findByIdAndUpdate(metadata.orderId, {
       stripeTransferId: id,
@@ -714,8 +679,6 @@ const handleTransferCreated = async (transfer) => {
 const handleTransferReversed = async (transfer) => {
   const { id, amount_reversed, metadata } = transfer;
   
-  console.log('[Webhook] transfer.reversed:', id);
-
   // Handle if needed - typically for disputes
   return { success: true };
 };
@@ -726,8 +689,6 @@ const handleTransferReversed = async (transfer) => {
 const handleAccountUpdated = async (account) => {
   const { id, charges_enabled, payouts_enabled, details_submitted } = account;
   
-  console.log('[Webhook] account.updated:', id);
-
   const freelancer = await Freelancer.findOne({ stripeAccountId: id });
   
   if (freelancer) {

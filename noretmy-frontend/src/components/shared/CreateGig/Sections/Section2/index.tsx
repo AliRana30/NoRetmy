@@ -77,7 +77,6 @@ const SectionTwo: React.FC<SectionTwoProps> = ({
     setDescriptionStrength(strength);
   }, [description]);
 
-
   // Generate suggested keywords based on description
   useEffect(() => {
     const words: string[] = description.toLowerCase().match(/\b\w+\b/g) || [];

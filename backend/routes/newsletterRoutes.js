@@ -10,5 +10,4 @@ router.post("/", subscribe);
 router.put("/edit",verifyToken,subscribeOrUpdate)
 router.get("/",verifyToken,getPreferencesByUserId)
 
-
 module.exports = router;

@@ -24,7 +24,6 @@ const UserProfile = require("../models/UserProfile");
   
 const createConverstion = async (req, res,next) => {
 
-  
   try { 
     const {sellerId, buyerId} = req.body;
 
@@ -45,9 +44,6 @@ const createConverstion = async (req, res,next) => {
     next(error)
   }
 };
-
-
-
 
   const getConverstion = async (req, res, next) => {
     try {
@@ -88,9 +84,7 @@ const createConverstion = async (req, res,next) => {
       next(error);
     }
   };
-  
-  
-  
+
 //   const getConverstions =async  (req, res,next) => {
 //     // Implementation
 // try {
@@ -196,10 +190,7 @@ const getConverstions = async (req, res, next) => {
   }
 };
 
-
-  
   const updateConverstion = async (req, res,next) => {
-    console.log(req.params.id);
     // Implementation
     try {
       const updatedConveration= await Conversation.findOneAndUpdate({id:req.params.id},{

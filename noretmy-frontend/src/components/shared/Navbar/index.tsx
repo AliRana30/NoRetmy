@@ -42,7 +42,6 @@ const Navbar: React.FC = () => {
     setMounted(true);
   }, []);
 
-
   const handleLogout = async () => {
     try {
       // Call the backend API to log out
@@ -213,8 +212,6 @@ const Navbar: React.FC = () => {
     );
   };
 
-
-
   const navigationItems = [
     {
       icon: <HomeIcon className="h-5 w-5 mr-1" />,
@@ -258,7 +255,6 @@ const Navbar: React.FC = () => {
                 priority
               />
             </Link>
-
 
             {/* Navigation Links - Desktop */}
             <div className="hidden lg:flex items-center space-x-4">

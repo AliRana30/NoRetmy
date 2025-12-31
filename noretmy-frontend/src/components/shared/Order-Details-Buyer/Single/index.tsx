@@ -59,7 +59,6 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
   onOperationComplete,
 }) => {
 
-
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [showRequestRevision, setShowRequestRevision] = useState(false);
   const [activeTab, setActiveTab] = useState<'order' | 'chat'>('order');
@@ -73,8 +72,6 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
   const [isExtending, setIsExtending] = useState(false);
   const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL;
   const timeLeft = useCountdown(orderDetails.deliveryDate);
-
-
 
   const user = useSelector((state: any) => state.auth?.user);
   // Check if current user is the seller OF THIS SPECIFIC ORDER (not just any seller)
@@ -176,7 +173,6 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
       .reverse();
   }, [statusHistory]);
 
-
   // Order Metrics data 
 
   const handleApiRequest = async (endpoint: string, data?: any) => {
@@ -218,27 +214,12 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
   //   const  handleRequirementsSubmission =  async (requirements:string)=>{
 
   //     try {
-  //         console.log("Requirements are submitted succesfully!")
-  //         const response = await axios.put("https://api.noretmy.com/api/orders/requirements-submit",{requirements,orderId:orderDetails.orderId},{withCredentials:true});
-
-  //         if(response.status==200){
+  //         //         if(response.status==200){
   //           // showToast('success', 'Requirements Submission', 'Requirements submitted successfully!');
-  //           console.log("Order Requiremnets succesfully submitted")
-  //           onOperationComplete();
-  //         }
+  //           //         }
 
   //     } catch (error) {
-  //         console.log("Error in submitting the requirments!",error)
-  //     }
-  //  }
-
-  // eslint-disable-next-line @typescript-eslint/no-shadow
-  const handleRequirementsSubmission = (
-    requirements: string,
-    files: File[],
-  ) => {
-    const formData = new FormData();
-    formData.append('orderId', orderDetails.orderId);
+  //         formData.append('orderId', orderDetails.orderId);
     formData.append('requirements', requirements);
 
     // Append each file
@@ -248,8 +229,6 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
 
     handleApiRequest('requirements-submit', formData);
   };
-
-
 
   const handleOrderStarted = () => {
     // const formData = new FormData();
@@ -267,8 +246,6 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
 
     handleApiRequest('deliver', formData);
   };
-
-
 
   const handleAcceptDelivery = () =>
     handleApiRequest('accept', { orderId: orderDetails.orderId, status: "accept" });
@@ -347,8 +324,6 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
         }
       );
 
-      console.log("Review submitted successfully:", response.data);
-
       if (response.status == 200) {
         showSuccess("Review submitted successfully!")
       }
@@ -358,8 +333,6 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
       showError(error)
     }
   };
-
-
 
   const handleDownload = (fileUrl: string) => {
     const link = document.createElement('a');
@@ -371,8 +344,6 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
     link.click();
     document.body.removeChild(link);
   };
-
-
 
   // Calculate key metrics
   const metrics = useMemo(() => {
@@ -441,13 +412,7 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
                   onSubmit={(data, files) =>
                     handleRequirementsSubmission(data, files)
                   }
-                  onClose={() => console.log('On Close clicked')}
-                />
-              </div>
-            )}
-          </div>
-        );
-      case 'requirementsSubmitted':
+                  onClose={() => case 'requirementsSubmitted':
         return (
           <div className="bg-white p-6 rounded-lg border-l-4 border border-gray-300 shadow-sm hover:shadow-md transition-all">
             <h3 className="text-gray-800 font-semibold mb-4 flex items-center">
@@ -460,22 +425,7 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
             <ViewRequirements
               requirements={requirements}
               attachments={attachments}
-              onClose={() => console.log('Clicked on close')}
-            // orderStatus={orderStatus}
-            />
-
-            {/* Start Button */}
-            {isOrderSeller && orderStatus === 'requirementsSubmitted' && (
-              <button
-                onClick={handleOrderStarted} // Replace with your function to start the order
-                className="mt-4 bg-black text-white py-2 px-6 rounded-lg hover:bg-gray-900 transition-all"
-              >
-                Start Order
-              </button>
-            )}
-          </div>
-        );
-      case 'started':
+              onClose={() => case 'started':
         return (
           <div className="space-y-5">
             <div className="flex flex-col sm:flex-row gap-3 items-center">
@@ -611,13 +561,7 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
                 </h3>
                 <RequestRevision
                   onRevisionSubmit={handleRequestRevisionSubmit}
-                  onClose={() => console.log('Clicked on close')}
-                />
-              </div>
-            )}
-          </div>
-        );
-      case 'requestedRevision':
+                  onClose={() => case 'requestedRevision':
         return (
           <div className="space-y-5">
             <div className="bg-white p-6 rounded-lg border-l-4 border border-gray-300 shadow-sm hover:shadow-md transition-all">
@@ -657,12 +601,10 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
                   ))}
                 </div>
 
-
               </div>
 
               <div className="space-y-5">
                 <div className="flex flex-col sm:flex-row gap-3 items-center">
-
 
                   {isOrderSeller && (
                     <button

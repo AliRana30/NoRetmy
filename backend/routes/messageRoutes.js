@@ -17,11 +17,7 @@
 // router.get('/:id', verifyToken, getMessages);
 // router.get('/sensitive-messages', searchSensitiveMessages);
 
-
 // module.exports = router;
-
-
-
 
 const express = require('express');
 const { verifyToken, requireAdmin } = require('../middleware/jwt');

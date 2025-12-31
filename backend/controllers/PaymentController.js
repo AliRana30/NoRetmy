@@ -16,8 +16,6 @@ const { PROMOTION_PLANS, getPlan } = require('../utils/promotionPlans');
 const notificationService = require('../services/notificationService');
 const mongoose = require('mongoose');
 
-
-
 exports.createCustomerAndPaymentIntent = async (req, res) => {
   const { amount, email } = req.body;
 
@@ -64,8 +62,6 @@ exports.createCustomerAndPaymentIntent = async (req, res) => {
   }
 };
 
-
-
 exports.createCustomerAndPaymentIntentUtil = async (amount, email,paymentType,additionalData) => {
   if (!amount || typeof amount !== 'number' || amount <= 0) {
     throw new Error('Invalid amount');
@@ -78,11 +74,7 @@ exports.createCustomerAndPaymentIntentUtil = async (amount, email,paymentType,ad
   // To get Metadata about payment
   const metadata = setupPaymentMetadata(paymentType, additionalData);
 
-
-
-
   try {
-
 
     const totalAmountInCents = Math.round(amount * 100);
 
@@ -123,8 +115,6 @@ exports.createCustomerAndPaymentIntentUtil = async (amount, email,paymentType,ad
   }
 };
 
-
-
 const setupPaymentMetadata = (paymentType, additionalData) => {
   const metadata = { paymentType };
 
@@ -160,9 +150,6 @@ const setupPaymentMetadata = (paymentType, additionalData) => {
 
   return metadata;
 };
-
-
-
 
 // exports.withdrawFunds = async (req, res) => {
 //     const { email, amount } = req.body; // Freelancer's email and withdrawal amount
@@ -218,8 +205,6 @@ const setupPaymentMetadata = (paymentType, additionalData) => {
 //         res.status(500).json({ success: false, error: error.message });
 //     }
 // };
-
-
 
 exports.paypalWithdrawFunds = async (req, res) => {
     const { email, amount } = req.body; // Freelancer's email and withdrawal amount
@@ -295,7 +280,6 @@ exports.paypalWithdrawFunds = async (req, res) => {
         });
     }
 };
-
 
 exports.withdrawFunds = async (req, res) => {
     const { email, amount } = req.body; 
@@ -386,9 +370,6 @@ exports.withdrawFunds = async (req, res) => {
     }
 };
 
-
-
-
 exports.processPayPalWithdrawal = async (email, amount) => {
 
   try {
@@ -437,8 +418,6 @@ exports.processPayPalWithdrawal = async (email, amount) => {
   }
 };
 
-
-
 exports.processRefund = async (req, res) => {
     const { chargeId, amount } = req.body; // Charge ID and refund amount
 
@@ -456,34 +435,22 @@ exports.processRefund = async (req, res) => {
     }
 };
 
-
-
-
  exports.handleStripeWebhook = async (req, res) => {
   const sig = req.headers['stripe-signature']; 
   const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET; 
   let event;
 
-  console.log('[Stripe Webhook] Received webhook request');
-
   try {
     event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
-    console.log('[Stripe Webhook] Event constructed successfully:', event.type);
-
     switch (event.type) {
       case 'payment_intent.succeeded':
-        console.log('[Stripe Webhook] Processing payment_intent.succeeded');
-        console.log('[Stripe Webhook] Metadata:', event.data.object.metadata);
         await handlePaymentIntentSucceeded(event.data.object);
-        console.log('[Stripe Webhook] payment_intent.succeeded processed successfully');
         break;
       case 'payment_intent.payment_failed':
-        console.log('[Stripe Webhook] Processing payment_intent.payment_failed');
         await handlePaymentIntentFailed(event.data.object);
         break;
       default:
-        console.log(`[Stripe Webhook] Unhandled event type ${event.type}`);
-    }
+        }
 
     res.status(200).json({ received: true });
   } catch (err) {
@@ -552,10 +519,7 @@ const handlePaymentIntentSucceeded = async (paymentIntent) => {
         seller.revenue.total += netEarnings;
         seller.revenue.pending += netEarnings;
         await seller.save();
-        console.log(`[Escrow] $${netEarnings} added to pending for ${seller.username}`);
-      }
-
-      console.log('Order successfully updated:', updatedOrder);
+        }
 
       if (!seller || !buyer) {
         throw new Error('Seller or buyer not found.');
@@ -565,7 +529,6 @@ const handlePaymentIntentSucceeded = async (paymentIntent) => {
       const buyerEmail = buyer.email;
 
       // Prepare messages
-     
 
       const gig=  await Job.findById(updatedOrder.gigId)
 
@@ -580,18 +543,14 @@ const handlePaymentIntentSucceeded = async (paymentIntent) => {
         sendOrderSuccessEmail(buyerEmail,buyerData),
         sendSellerOrderNotificationEmail(sellerEmail,sellerData)  ]);
 
-      console.log('Notifications sent to both seller and buyer.');
-    } else if (paymentType === 'gig_promotion' || paymentType === 'monthly_promotion') {
+      } else if (paymentType === 'gig_promotion' || paymentType === 'monthly_promotion') {
       // ========== UNIFIED PROMOTION HANDLER ==========
       // Uses PromotionPurchase as single source of truth
       // Idempotent: checks for existing record before creating
       
-      console.log(`[Promotion] Processing ${paymentType}. Plan: ${promotionPlan}, User: ${userId}, Gig: ${gigId || 'ALL'}`);
-      
       // 1. Idempotency check - prevent duplicate processing
       const existingPurchase = await PromotionPurchase.findOne({ stripePaymentIntentId: id });
       if (existingPurchase) {
-        console.log('[Promotion] Already processed this payment intent:', id);
         return;
       }
       
@@ -646,11 +605,9 @@ const handlePaymentIntentSucceeded = async (paymentIntent) => {
       
       try {
         await promotionPurchase.save();
-        console.log('[Promotion] PromotionPurchase created:', promotionPurchase._id, 'Status: active');
-      } catch (saveError) {
+        } catch (saveError) {
         if (saveError.code === 11000) {
           // Duplicate key - already processed
-          console.log('[Promotion] Duplicate prevented by unique index');
           return;
         }
         console.error('[Promotion] Failed to save PromotionPurchase:', saveError);
@@ -675,8 +632,7 @@ const handlePaymentIntentSucceeded = async (paymentIntent) => {
         } else {
           await sendAllGigsPromotionEmail(user.email, emailData);
         }
-        console.log('[Promotion] Email sent to:', user.email);
-      } catch (emailError) {
+        } catch (emailError) {
         console.error('[Promotion] Email failed:', emailError.message);
         // Don't fail the whole process for email errors
       }
@@ -698,17 +654,14 @@ const handlePaymentIntentSucceeded = async (paymentIntent) => {
         console.error('[Promotion] Admin notification failed:', adminNotifError.message);
       }
       
-      console.log(`[Promotion] Successfully activated ${plan.name} for user ${user.username}`);
-
-    } else if (paymentType === 'timeline_extension') {
+      } else if (paymentType === 'timeline_extension') {
       // Handle Timeline Extension Payment
       const { processTimelineExtension } = require('./timelineExtensionController');
       
       const success = await processTimelineExtension(paymentIntent);
       
       if (success) {
-        console.log('Timeline extension processed successfully');
-      } else {
+        } else {
         console.error('Failed to process timeline extension');
       }
     }
@@ -717,14 +670,11 @@ const handlePaymentIntentSucceeded = async (paymentIntent) => {
   }
 };
 
-
 async function handlePaymentIntentFailed(paymentIntent) {
   const { id, last_payment_error } = paymentIntent;
 
   try {
     // Log the failed payment and update the order accordingly
-    console.log('Payment failed for PaymentIntent ID:', id, 'Error:', last_payment_error);
-
     // Optionally, update the order's status to indicate a failed payment
     const updatedOrder = await Order.findOneAndUpdate(
       { payment_intent: id },
@@ -736,8 +686,7 @@ async function handlePaymentIntentFailed(paymentIntent) {
     );
 
     if (updatedOrder) {
-      console.log('Order updated to reflect payment failure:', updatedOrder);
-    }
+      }
   } catch (err) {
     console.error('Error handling failed payment intent:', err);
   }

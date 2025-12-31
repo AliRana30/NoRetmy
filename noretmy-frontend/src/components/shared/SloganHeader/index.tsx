@@ -77,8 +77,7 @@ const SloganHeader: React.FC = () => {
                 {t('home:slogan.cta')}
                 <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform duration-300" />
               </Link>
-              
-             
+
             </div>
           </div>
 

@@ -10,7 +10,6 @@ const DocumentUpload = () => {
   const [error, setError] = useState('');
   const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL;
 
-  
   // Get document status from Redux state
   const documentStatus = useSelector((state: any) => state.auth.user?.documentStatus || 'none');
 
@@ -43,11 +42,7 @@ const DocumentUpload = () => {
 
   const handleSubmit = async (e: any) => {
     e.preventDefault();
-    console.log(files)
-
-    if (!files) {
-      setError('Please select a document to upload.');
-      return;
+    return;
     }
 
     setLoading(true);
@@ -58,7 +53,6 @@ const DocumentUpload = () => {
       const formData = new FormData();
       formData.append('images', files); // this key MUST match the field name in multer
 
-      console.log(formData);
       // Upload document to API
       const response = await axios.post(`${BACKEND_URL}/api/upload/verify`, 
          formData
@@ -77,8 +71,7 @@ const DocumentUpload = () => {
       setStatus('Document uploaded successfully!');
       setFile(null);
 
-      console.log('Upload response:', data);
-    } catch (error) {
+      } catch (error) {
       setError(`Failed to upload document: ${error}`);
       setStatus('');
     } finally {

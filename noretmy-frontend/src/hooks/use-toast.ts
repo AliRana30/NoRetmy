@@ -137,8 +137,6 @@ export const reducer = (state: State, action: Action): State => {
   }
 };
 
-
-
 type Toast = Omit<ToasterToast, 'id'>;
 
 function toastMessage({ ...toastProps }: Toast) {

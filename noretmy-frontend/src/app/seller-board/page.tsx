@@ -17,7 +17,6 @@ import { toast } from 'react-toastify';
 import Link from 'next/link';
 import { SkeletonDashboard } from '@/components/shared/Skeletons';
 
-
 interface SellerLevel {
   level: string;
   label: string;
@@ -186,7 +185,6 @@ const SellerDashboard = () => {
       </div>
     );
   }
-
 
   // Check if withdrawal is allowed (amount > $20)
   const withdrawalAllowed = dashboardData.availableForWithdrawal >= 20;

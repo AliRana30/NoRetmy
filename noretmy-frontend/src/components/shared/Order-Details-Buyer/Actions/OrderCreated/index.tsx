@@ -8,15 +8,6 @@ const OrderDetails = ({orderDate,deliveryDate,sellerName,price}) => {
  
   const timeLeft = useCountdown(deliveryDate);
   
-  console.log(timeLeft) 
- 
-  const formattedDeliveryDate = new Date(deliveryDate).toLocaleDateString("en-US", { 
-    year: "numeric", 
-    month: "long", 
-    day: "numeric", 
-  }); 
- 
- 
   const formattedOrderDate = new Date(orderDate).toLocaleDateString("en-US", { 
     year: "numeric", 
     month: "long", 

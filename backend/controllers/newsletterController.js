@@ -59,8 +59,6 @@ const subscribeOrUpdate = async (req, res) => {
   }
 };
 
-
-
   const getPreferencesByUserId = async (req, res) => {
   try {
     const { userId } = req;
@@ -81,7 +79,6 @@ const subscribeOrUpdate = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
-
 
 module.exports = {
     subscribe , subscribeOrUpdate ,getPreferencesByUserId

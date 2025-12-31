@@ -247,5 +247,4 @@ const getSellerStatistics = async (sellerId) => {
   }
 };
 
-
 module.exports = { getSellerStatistics };

@@ -20,9 +20,6 @@ const getSellerStats = async (req, res) => {
 
 const createProject = async (req, res) => {
   try {
-    console.log("Request Body:", req.body);
-    console.log("Uploaded Files:", req.files);
-
     const { userId } = req;
     if (!userId) {
       return res.status(401).json({ message: "Unauthorized: No userId found" });

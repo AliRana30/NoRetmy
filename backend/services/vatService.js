@@ -125,7 +125,6 @@ const validateVATID = async (vatId, countryCode) => {
 const getVATRateByCountry = async (countryCode) => {
   try {
     if (!countryCode) {
-      console.log('No country code provided, using 0% VAT');
       return 0;
     }
 

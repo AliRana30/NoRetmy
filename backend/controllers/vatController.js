@@ -49,21 +49,18 @@
 //         // Perform bulk update to save VAT data in MongoDB
 //         await VATRate.bulkWrite(operations);
 
-//         console.log('VAT rates updated successfully.');
-//     } catch (error) {
+//         //     } catch (error) {
 //         console.error('Error updating VAT rates:', error.response ? error.response.data : error.message);
 //     }
 // };
 
 // // Schedule the VAT update to run every 24 hours
 // cron.schedule('0 0 * * *', () => {
-//     console.log('Running scheduled VAT rates update...');
-//     fetchAndStoreVATRates();
+//     //     fetchAndStoreVATRates();
 // });
 
 // // Export for manual route-based trigger as well
 // module.exports = { fetchAndStoreVATRates };
-
 
 const axios = require('axios');
 const cron = require('node-cron');
@@ -125,15 +122,12 @@ const fetchAndStoreVATRates = async () => {
         // If there are any updates to apply, perform bulk write
         if (operations.length > 0) {
             await VATRate.bulkWrite(operations);
-            console.log(`${operations.length} VAT rates updated successfully.`);
-        } else {
-            console.log('No VAT rate updates required.');
-        }
+            } else {
+            }
     } catch (error) {
         console.error('Error updating VAT rates:', error.response ? error.response.data : error.message);
     }
 };
-
 
 const getVatRate = async (userId) => {
     if (!userId) {
@@ -171,7 +165,6 @@ const getVatRate = async (userId) => {
     }
 };
 
-
 // to be deleted
 const ToBeDeleted=async(req,res)=>{
     try {
@@ -192,10 +185,8 @@ const ToBeDeleted=async(req,res)=>{
       }
 }
 
-
 // Schedule the VAT update to run every 24 hours
 cron.schedule('0 0 * * *', () => {
-    console.log('Running scheduled VAT rates update...');
     fetchAndStoreVATRates();
 });
 

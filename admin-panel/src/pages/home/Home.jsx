@@ -14,7 +14,6 @@ import { getAdminDashboardStats } from "../../utils/adminApi";
 import { Users, Package, DollarSign, Briefcase, TrendingUp, Activity, Clock, CheckCircle } from "lucide-react";
 import { SkeletonDashboard } from "../../components/Skeletons";
 
-
 const Home = () => {
   const { darkMode } = useContext(DarkModeContext);
   const [dashboardData, setDashboardData] = useState({
@@ -153,7 +152,6 @@ const Home = () => {
         updateDashboardData({ chartData: revenueData });
       }
     } catch (adminError) {
-      console.log("Admin stats not available, using local data:", adminError);
       await loadLocalDashboard();
     }
   };
@@ -314,7 +312,6 @@ const Home = () => {
       </div>
     );
   }
-
 
   // Error State
   if (error) {

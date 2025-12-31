@@ -38,10 +38,6 @@ interface OnboardingData {
     const [onboardingData,setOnboardingData] = useState<OnboardingData | null>(null);
     const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL;
 
-
-
-
-
     useEffect(() => {
       // Fetch user balance
       const fetchBalance = async () => {
@@ -58,7 +54,6 @@ interface OnboardingData {
           setBalance(response.data.accountDetails.availableBalance)
           setAccount(response.data.accountDetails)
           
-          console.log(response.data);
           setLoading(false);
         } catch (err) {
           setError('Failed to fetch your balance. Please try again later.');
@@ -86,21 +81,16 @@ interface OnboardingData {
       setEmail(e.target.value);
     };
 
-
-
     const handleAddAccount = async (accountData: PayoutAccountData): Promise<void> => {
 
-      
       try {
         const response = await axios.post(`${BACKEND_URL}/withdraw/account`, accountData, {
           withCredentials : true
         });
 
-        
         setAccount(response.data.account);
         // setAccountAddSuccess(response.data.success);
         setOnboardingData(response.data)
-      
 
         toast.success("dadas");
       } catch (error: any) {
@@ -154,7 +144,6 @@ interface OnboardingData {
         return;
       }
 
-   
       try {
         setProcessing(true);
         const response = await axios.post(

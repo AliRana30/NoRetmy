@@ -184,7 +184,6 @@ const processTimelineExtension = async (paymentIntent) => {
       new Date(newDeadline)
     );
 
-    console.log(`✓ Timeline extended for order ${orderId} by ${extensionDays} days`);
     return true;
   } catch (error) {
     console.error('Error processing timeline extension:', error);

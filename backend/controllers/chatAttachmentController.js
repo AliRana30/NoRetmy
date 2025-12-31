@@ -16,8 +16,7 @@ try {
   const { s3Client } = require('../config/s3Config');
   s3 = s3Client;
 } catch (err) {
-  console.log('[ChatAttachment] S3 not configured, using Cloudinary only');
-}
+  }
 
 /**
  * File type configuration
@@ -315,11 +314,9 @@ const uploadChatFiles = async (req, res) => {
           conversationId,
           attachmentCount: attachmentsForMessage.length,
           attachmentNames: attachmentsForMessage.map(a => a.name).slice(0, 3) // First 3 file names
-        }).catch(err => console.log('[ChatAttachment] Email error:', err.message));
-      }
+        }).catch(err => }
     } catch (emailError) {
-      console.log('[ChatAttachment] Email notification error:', emailError.message);
-    }
+      }
 
     res.status(201).json({
       success: true,

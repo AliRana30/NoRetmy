@@ -26,8 +26,7 @@ const expirePromotions = async () => {
     );
     
     if (result.modifiedCount > 0) {
-      console.log(`[Cron] Expired ${result.modifiedCount} promotion(s) at ${now.toISOString()}`);
-    }
+      }
     
     return result.modifiedCount;
   } catch (error) {
@@ -45,11 +44,8 @@ const initPromotionExpirationCron = () => {
   
   // Run every hour at minute 0
   cron.schedule('0 * * * *', async () => {
-    console.log('[Cron] Running promotion expiration check...');
     await expirePromotions();
   });
-  
-  console.log('✅ Promotion expiration cron job initialized (runs hourly)');
   
   // Also run immediately on startup to catch any missed expirations
   expirePromotions();

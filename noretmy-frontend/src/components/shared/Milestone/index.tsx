@@ -105,8 +105,6 @@ const CreateOrderScreen = ({ buyerId }: { buyerId: string }) => {
           : milestones.reduce((sum, m) => sum + m.amount, 0),
     };
 
-    console.log(orderData);
-
     try {
      const response  =  await axios.post(
         `${BACKEND_URL}/orders`,
@@ -115,8 +113,6 @@ const CreateOrderScreen = ({ buyerId }: { buyerId: string }) => {
       );
       // router.push('/orders');
 
-     
-     
     if(response.status==200 || response.status ==201 || response.status == 204){
       setMilestones([]);
       setSelectedGig(null);

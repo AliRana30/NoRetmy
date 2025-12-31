@@ -67,7 +67,6 @@ export const fetchGigs = createAsyncThunk(
   }
 );
 
-
 // Create the slice
 const gigsSlice = createSlice({
   name: 'gigs',

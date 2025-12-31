@@ -1,8 +1,6 @@
 import { FiverrCategories } from '@/util/data';
 import { useState } from 'react';
 
-
-
 interface CategoryComponentProps {
   selectedCategory: string;
   selectedSubcategory: string;

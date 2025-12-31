@@ -39,8 +39,7 @@
 //       });
 //     }
 //     await agoraClient.leave();
-//     console.log("Left the call successfully.");
-//   } catch (error) {
+//     //   } catch (error) {
 //     console.error("Error leaving the call:", error);
 //   }
 // };
