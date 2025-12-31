@@ -42,7 +42,9 @@ const DocumentUpload = () => {
 
   const handleSubmit = async (e: any) => {
     e.preventDefault();
-    return;
+
+    if (!files) {
+      return;
     }
 
     setLoading(true);
@@ -54,14 +56,14 @@ const DocumentUpload = () => {
       formData.append('images', files); // this key MUST match the field name in multer
 
       // Upload document to API
-      const response = await axios.post(`${BACKEND_URL}/api/upload/verify`, 
-         formData
-      , {
-        withCredentials: true,
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      const response = await axios.post(`${BACKEND_URL}/api/upload/verify`,
+        formData
+        , {
+          withCredentials: true,
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
 
       if (!response) {
         throw new Error(`Upload failed with status: ${response.status}`);
@@ -71,7 +73,7 @@ const DocumentUpload = () => {
       setStatus('Document uploaded successfully!');
       setFile(null);
 
-      } catch (error) {
+    } catch (error) {
       setError(`Failed to upload document: ${error}`);
       setStatus('');
     } finally {
@@ -230,49 +232,49 @@ const DocumentUpload = () => {
             </form>
           </>
         );
-      
+
       case 'pending':
         return (
           <div className="text-center">
             <div className="mb-6">
-              <svg 
-                className="w-16 h-16 text-yellow-500 mx-auto mb-4" 
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24" 
+              <svg
+                className="w-16 h-16 text-yellow-500 mx-auto mb-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
                 xmlns="http://www.w3.org/2000/svg"
               >
-                <path 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round" 
-                  strokeWidth="2" 
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
                   d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                 ></path>
               </svg>
               <h2 className="text-xl font-semibold mb-2">Document Under Review</h2>
               <p className="text-gray-600">
-                Your verification document has been submitted and is currently being reviewed. 
+                Your verification document has been submitted and is currently being reviewed.
                 This process typically takes 1-2 business days.
               </p>
             </div>
           </div>
         );
-      
+
       case 'approved':
         return (
           <div className="text-center">
             <div className="mb-6">
-              <svg 
-                className="w-16 h-16 text-orange-500 mx-auto mb-4" 
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24" 
+              <svg
+                className="w-16 h-16 text-orange-500 mx-auto mb-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
                 xmlns="http://www.w3.org/2000/svg"
               >
-                <path 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round" 
-                  strokeWidth="2" 
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
                   d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                 ></path>
               </svg>
@@ -283,22 +285,22 @@ const DocumentUpload = () => {
             </div>
           </div>
         );
-      
+
       case 'rejected':
         return (
           <div className="text-center">
             <div className="mb-6">
-              <svg 
-                className="w-16 h-16 text-red-500 mx-auto mb-4" 
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24" 
+              <svg
+                className="w-16 h-16 text-red-500 mx-auto mb-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
                 xmlns="http://www.w3.org/2000/svg"
               >
-                <path 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round" 
-                  strokeWidth="2" 
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
                   d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
                 ></path>
               </svg>
@@ -315,7 +317,7 @@ const DocumentUpload = () => {
             </div>
           </div>
         );
-      
+
       default:
         return (
           <div className="text-center">
