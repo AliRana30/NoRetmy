@@ -50,7 +50,7 @@ const New = ({ inputs, title, apiEndpoint }) => {
       if (apiEndpoint.includes('auth/signup')) {
           newUser = {
               ...newUser,
-              isSeller: false, // Default to client if created from admin
+              isSeller: newUser.isSeller !== undefined ? (newUser.isSeller === "true") : false,
           };
       }
 
@@ -103,13 +103,27 @@ const New = ({ inputs, title, apiEndpoint }) => {
               {inputs.map((input) => (
                 <div className="w-full md:w-[48%] space-y-2" key={input.id}>
                   <label className="block text-sm font-semibold text-gray-700">{input.label}</label>
-                  <input 
-                    onChange={handleChange}
-                    type={input.type} 
-                    name={input.name} // Added name prop
-                    placeholder={input.placeholder}
-                    className="w-full h-11 px-4 border-2 border-gray-200 rounded-xl transition-all duration-200 focus:outline-none focus:ring-0 focus:border-amber-500 hover:border-gray-300"
-                  />
+                  {input.type === "select" ? (
+                    <select
+                      name={input.name}
+                      onChange={handleChange}
+                      className="w-full h-11 px-4 border-2 border-gray-200 rounded-xl transition-all duration-200 focus:outline-none focus:ring-0 focus:border-amber-500 hover:border-gray-300"
+                    >
+                      {input.options.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input 
+                      onChange={handleChange}
+                      type={input.type} 
+                      name={input.name}
+                      placeholder={input.placeholder}
+                      className="w-full h-11 px-4 border-2 border-gray-200 rounded-xl transition-all duration-200 focus:outline-none focus:ring-0 focus:border-amber-500 hover:border-gray-300"
+                    />
+                  )}
                 </div>
               ))}
               <button 

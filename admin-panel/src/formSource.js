@@ -21,24 +21,10 @@ export const userInputs = [
       placeholder: "john_doe@gmail.com",
     },
     {
-      id: 4,
-      label: "Phone",
-      name: "phone",
-      type: "text",
-      placeholder: "+1 234 567 89",
-    },
-    {
       id: 5,
       label: "Password",
       name: "password",
       type: "password",
-    },
-    {
-      id: 6,
-      label: "Address",
-      name: "address",
-      type: "text",
-      placeholder: "Elton St. 216 NewYork",
     },
     {
       id: 7,
@@ -46,6 +32,16 @@ export const userInputs = [
       name: "country",
       type: "text",
       placeholder: "USA",
+    },
+    {
+      id: 8,
+      label: "Role",
+      name: "isSeller",
+      type: "select",
+      options: [
+        { label: "Client", value: "false" },
+        { label: "Freelancer", value: "true" },
+      ],
     },
   ];
   

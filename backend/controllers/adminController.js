@@ -128,6 +128,79 @@ const getDashboardStats = async (req, res) => {
       .populate('buyerId', 'fullName email')
       .populate('sellerId', 'fullName email');
 
+    // Get revenue metrics
+    const today = new Date(new Date().setHours(0, 0, 0, 0));
+    const startOfWeek = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+
+    const [
+      dailyRevenueRes,
+      weeklyRevenueRes,
+      monthlyRevenueRes,
+      overallRevenueRes
+    ] = await Promise.all([
+      Order.aggregate([
+        { $match: { status: 'completed', createdAt: { $gte: today } } },
+        { $group: { _id: null, total: { $sum: { $ifNull: ['$totalAmount', '$price'] } } } }
+      ]),
+      Order.aggregate([
+        { $match: { status: 'completed', createdAt: { $gte: startOfWeek } } },
+        { $group: { _id: null, total: { $sum: { $ifNull: ['$totalAmount', '$price'] } } } }
+      ]),
+      Order.aggregate([
+        { $match: { status: 'completed', createdAt: { $gte: startOfMonth } } },
+        { $group: { _id: null, total: { $sum: { $ifNull: ['$totalAmount', '$price'] } } } }
+      ]),
+      Order.aggregate([
+        { $match: { status: 'completed' } },
+        { $group: { _id: null, total: { $sum: { $ifNull: ['$totalAmount', '$price'] } } } }
+      ])
+    ]);
+
+    const dailyRevenue = dailyRevenueRes[0]?.total || 0;
+    const weeklyRevenue = weeklyRevenueRes[0]?.total || 0;
+    const monthlyRevenue = monthlyRevenueRes[0]?.total || 0;
+    const totalRevenueFromOrders = overallRevenueRes[0]?.total || 0;
+
+    // Monthly revenue for the last 6 months
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
+    sixMonthsAgo.setDate(1);
+    sixMonthsAgo.setHours(0, 0, 0, 0);
+
+    const monthlyRevenueInsight = await Order.aggregate([
+      {
+        $match: {
+          status: 'completed',
+          createdAt: { $gte: sixMonthsAgo }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: '$createdAt' },
+            month: { $month: '$createdAt' }
+          },
+          revenue: { $sum: { $ifNull: ['$totalAmount', '$price'] } }
+        }
+      },
+      { $sort: { '_id.year': 1, '_id.month': 1 } }
+    ]);
+
+    // Format monthly data for chart
+    const chartData = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date();
+      d.setMonth(d.getMonth() - i);
+      const year = d.getFullYear();
+      const month = d.getMonth() + 1;
+      const found = monthlyRevenueInsight.find(m => m._id.year === year && m._id.month === month);
+      chartData.push({
+        month: d.toISOString(),
+        revenue: found?.revenue || 0
+      });
+    }
+
     res.status(200).json({
       success: true,
       data: {
@@ -149,8 +222,10 @@ const getDashboardStats = async (req, res) => {
           totalOrders,
           completedOrders,
           pendingOrders,
-          totalRevenue: finalTotalRevenue,
-          monthlyRevenue: monthlyRevenueFromPromotions,
+          totalRevenue: totalRevenueFromOrders + totalRevenueFromPromotions,
+          dailyRevenue: dailyRevenue,
+          weeklyRevenue: weeklyRevenue,
+          monthlyRevenue: monthlyRevenue,
           totalReviews,
           averageRating: Math.round(averageRating * 10) / 10
         },
@@ -169,7 +244,8 @@ const getDashboardStats = async (req, res) => {
         },
         insights: {
           topJobCategories,
-          recentOrders
+          recentOrders,
+          monthlyRevenue: chartData
         }
       }
     });
@@ -1023,23 +1099,24 @@ const getOrderDetails = async (req, res) => {
     let job = null;
     
     try {
-      if (order.buyerId && order.buyerId.match && order.buyerId.match(/^[0-9a-fA-F]{24}$/)) {
+      if (order.buyerId && (typeof order.buyerId === 'string' ? order.buyerId.match(/^[0-9a-fA-F]{24}$/) : true)) {
         buyer = await User.findById(order.buyerId).select('fullName email username profilePicture').lean();
-      } else if (order.buyerId) {
-        // Try to find user by string ID directly
-        buyer = await User.findById(order.buyerId).select('fullName email username profilePicture').lean().catch(() => null);
+        if (buyer) {
+          const profile = await UserProfile.findOne({ userId: buyer._id }).select('profilePicture').lean();
+          buyer.profilePicture = profile?.profilePicture || buyer.profilePicture;
+        }
       }
-    } catch (e) {
-      }
+    } catch (e) {}
     
     try {
-      if (order.sellerId && order.sellerId.match && order.sellerId.match(/^[0-9a-fA-F]{24}$/)) {
+      if (order.sellerId && (typeof order.sellerId === 'string' ? order.sellerId.match(/^[0-9a-fA-F]{24}$/) : true)) {
         seller = await User.findById(order.sellerId).select('fullName email username profilePicture').lean();
-      } else if (order.sellerId) {
-        seller = await User.findById(order.sellerId).select('fullName email username profilePicture').lean().catch(() => null);
+        if (seller) {
+          const profile = await UserProfile.findOne({ userId: seller._id }).select('profilePicture').lean();
+          seller.profilePicture = profile?.profilePicture || seller.profilePicture;
+        }
       }
-    } catch (e) {
-      }
+    } catch (e) {}
     
     try {
       const gigId = order.gigId || order.jobId;
@@ -1211,7 +1288,7 @@ const getFinancialOverview = async (req, res) => {
     ] = await Promise.all([
       Order.aggregate([
         { $match: { status: 'completed' } },
-        { $group: { _id: null, total: { $sum: '$totalPrice' } } }
+        { $group: { _id: null, total: { $sum: { $ifNull: ['$totalAmount', '$price'] } } } }
       ]).then(result => result[0]?.total || 0),
       
       Order.aggregate([
@@ -1221,12 +1298,12 @@ const getFinancialOverview = async (req, res) => {
             createdAt: dateFilter 
           } 
         },
-        { $group: { _id: null, total: { $sum: '$totalPrice' } } }
+        { $group: { _id: null, total: { $sum: { $ifNull: ['$totalAmount', '$price'] } } } }
       ]).then(result => result[0]?.total || 0),
       
       Order.aggregate([
         { $match: { status: 'pending' } },
-        { $group: { _id: null, total: { $sum: '$totalPrice' } } }
+        { $group: { _id: null, total: { $sum: { $ifNull: ['$totalAmount', '$price'] } } } }
       ]).then(result => result[0]?.total || 0),
       
       Order.countDocuments({ status: 'completed', createdAt: dateFilter }),
@@ -1248,7 +1325,7 @@ const getFinancialOverview = async (req, res) => {
       
       Order.aggregate([
         { $match: { status: 'refunded' } },
-        { $group: { _id: null, total: { $sum: '$totalPrice' } } }
+        { $group: { _id: null, total: { $sum: { $ifNull: ['$totalAmount', '$price'] } } } }
       ]).then(result => result[0]?.total || 0)
     ]);
 
@@ -1268,7 +1345,7 @@ const getFinancialOverview = async (req, res) => {
               date: '$createdAt'
             }
           },
-          revenue: { $sum: '$totalPrice' },
+          revenue: { $sum: { $ifNull: ['$totalAmount', '$price'] } },
           orders: { $sum: 1 }
         }
       },
