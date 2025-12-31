@@ -52,7 +52,7 @@ const getNavigationItems = (isSeller: boolean, t: any) => {
 // Quick actions configuration
 const getQuickActions = (isSeller: boolean, t: any) => {
   if (!isSeller) return [];
-  
+
   return [
     { id: 'create-gig', label: t('profile:sidebar.actions.createGig', 'Create New Gig'), icon: Plus, href: '/create-new' },
     { id: 'add-project', label: t('profile:sidebar.actions.addProject', 'Add Project'), icon: FolderOpen, href: '/portfolio' },
@@ -76,7 +76,7 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
 }) => {
   const router = useRouter();
   const { t } = useTranslations();
-  
+
   const navigationItems = getNavigationItems(isSeller, t);
   const quickActions = getQuickActions(isSeller, t);
 
@@ -89,13 +89,13 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
   };
 
   return (
-    <aside className="w-72 flex-shrink-0">
+    <aside className="w-full lg:w-72 flex-shrink-0">
       <div className="sticky top-24 space-y-4">
         {/* User Info Card */}
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
           {/* Header Background */}
           <div className="h-16 bg-gradient-to-r from-slate-800 to-slate-600" />
-          
+
           {/* Profile Content */}
           <div className="px-5 pb-5">
             {/* Avatar */}
@@ -109,9 +109,8 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
                 />
               </div>
               {/* Online Status Indicator */}
-              <div className={`absolute bottom-1 right-1 w-4 h-4 rounded-full border-2 border-white ${
-                profileData.isOnline ? 'bg-orange-500' : 'bg-gray-400'
-              }`} />
+              <div className={`absolute bottom-1 right-1 w-4 h-4 rounded-full border-2 border-white ${profileData.isOnline ? 'bg-orange-500' : 'bg-gray-400'
+                }`} />
             </div>
 
             {/* User Info */}
@@ -120,7 +119,7 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
                 {profileData.fullName || 'User'}
               </h3>
               <p className="text-sm text-gray-500 truncate">@{profileData.username || 'username'}</p>
-              
+
               {/* Online Status Text */}
               <div className="flex items-center gap-1.5 text-sm">
                 <Circle className={`w-2.5 h-2.5 ${profileData.isOnline ? 'text-orange-500 fill-orange-500' : 'text-gray-400 fill-gray-400'}`} />
@@ -155,16 +154,15 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
             {navigationItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeSection === item.id;
-              
+
               return (
                 <button
                   key={item.id}
                   onClick={() => handleNavClick(item)}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-all duration-200 ${
-                    isActive
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-all duration-200 ${isActive
                       ? 'bg-orange-50 text-orange-600 font-semibold border-l-3 border-orange-500'
                       : 'text-slate-600 hover:bg-gray-50 hover:text-slate-900 border-l-3 border-transparent'
-                  }`}
+                    }`}
                 >
                   <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-orange-500' : 'text-slate-400'}`} />
                   <span className="text-sm">{item.label}</span>

@@ -312,8 +312,11 @@ const MessageScreen: React.FC<{ route?: any }> = ({ route }) => {
       {/* Chat Header */}
       <div className="p-3 md:p-4 bg-white shadow-md border-b flex items-center justify-between flex-shrink-0 z-10">
         <div className="flex items-center gap-3">
-          <div className="block lg:hidden mr-1">
-            <Menu size={20} className="text-gray-600 cursor-pointer" />
+          <div className="block lg:hidden mr-1 flex items-center gap-2">
+            <button onClick={() => router.push('/chat')} className="p-1 hover:bg-gray-100 rounded-full">
+              <ChevronDown className="rotate-90 text-gray-600" size={24} />
+            </button>
+            <Menu size={20} className="text-gray-600 cursor-pointer hidden" /> {/* Hiding menu for now as back button takes precedence */}
           </div>
           {/* Other user avatar and name with profile link */}
           <div

@@ -414,9 +414,9 @@ const ProfileSection = () => {
 
   if (loading) {
     return (
-      <div className="flex gap-8">
-        <aside className="w-72 flex-shrink-0">
-          <div className="sticky top-24 space-y-4">
+      <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
+        <aside className="w-full lg:w-72 flex-shrink-0">
+          <div className="static lg:sticky top-24 space-y-4">
             <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
               <div className="h-16 bg-gray-200" />
               <div className="px-5 pb-5">
@@ -428,7 +428,7 @@ const ProfileSection = () => {
                 </div>
               </div>
             </div>
-            <div className="bg-white border border-gray-200 rounded-xl p-4">
+            <div className="hidden lg:block bg-white border border-gray-200 rounded-xl p-4">
               <div className="skeleton h-4 w-24 mb-4" />
               {[1, 2, 3, 4, 5].map((i) => (
                 <div key={i} className="skeleton h-10 w-full mb-2" />
@@ -444,13 +444,15 @@ const ProfileSection = () => {
   }
 
   return (
-    <div className="flex gap-8">
-      <ProfileSidebar
-        profileData={profileData}
-        isSeller={isSeller}
-        activeSection={activeSection}
-        onSectionChange={handleSectionChange}
-      />
+    <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
+      <div className="w-full lg:w-72 flex-shrink-0">
+        <ProfileSidebar
+          profileData={profileData}
+          isSeller={isSeller}
+          activeSection={activeSection}
+          onSectionChange={handleSectionChange}
+        />
+      </div>
       <main className="flex-1 min-w-0">
         {renderSectionContent()}
       </main>

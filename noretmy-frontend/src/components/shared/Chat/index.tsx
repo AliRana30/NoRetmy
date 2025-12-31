@@ -85,8 +85,8 @@ const ChatScreen: React.FC = () => {
   }, [router]);
 
   const filteredConversations = conversations.filter((conv) =>
-    conv.seller.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    conv.buyer.username.toLowerCase().includes(searchQuery.toLowerCase())
+    conv.seller?.username?.toLowerCase().includes(searchQuery?.toLowerCase()) ||
+    conv.buyer?.username?.toLowerCase().includes(searchQuery?.toLowerCase())
   );
 
   const renderConversationItem = (conversation: Conversation) => {
