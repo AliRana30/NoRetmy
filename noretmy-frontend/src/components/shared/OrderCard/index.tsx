@@ -75,12 +75,27 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onViewDetails }) => {
   const router = useRouter();
   const [showReviewModal, setShowReviewModal] = useState(false);
   const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL;
+
+  // Handle both formats: backend returns gig.title/image OR gigId.title/photos
   const gigPhoto =
-    order?.gigId?.photos?.[0]?.trim() || 'https://via.placeholder.com/96';
-  const gigTitle = order?.gigId?.title || t('details.orderInfo.untitledGig', { ns: 'orders', defaultValue: 'Untitled Gig' });
-  const sellerUsername = order?.sellerId?.username || t('details.seller.unknown', { ns: 'orders', defaultValue: 'Unknown Seller' });
+    (order as any)?.gig?.image ||
+    order?.gigId?.photos?.[0]?.trim() ||
+    'https://via.placeholder.com/96';
+  const gigTitle =
+    (order as any)?.gig?.title ||
+    order?.gigId?.title ||
+    t('details.orderInfo.untitledGig', { ns: 'orders', defaultValue: 'Untitled Gig' });
+
+  // Handle both formats: backend returns seller.name/image OR sellerId.username/image
+  const sellerUsername =
+    (order as any)?.seller?.name ||
+    order?.sellerId?.username ||
+    t('details.seller.unknown', { ns: 'orders', defaultValue: 'Unknown Seller' });
   const sellerImage =
-    order?.sellerId?.image || 'https://via.placeholder.com/40';
+    (order as any)?.seller?.image ||
+    order?.sellerId?.image ||
+    'https://via.placeholder.com/40';
+
   const price = order?.price ? `$${order.price.toLocaleString()}` : t('details.orderInfo.na', { ns: 'orders', defaultValue: 'N/A' });
   const status = order?.status ? t(`details.status.${order.status.toLowerCase()}`, { ns: 'orders', defaultValue: order.status }) : t('details.orderInfo.na', { ns: 'orders', defaultValue: 'N/A' });
   const createdAt = order?.createdAt

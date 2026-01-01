@@ -680,16 +680,24 @@ const getUserJobs = async (req, res) => {
   try {
     const { userId } = req;
 
+    console.log('[getUserJobs] Request from userId:', userId);
+
     if (!userId) {
+      console.log('[getUserJobs] No userId provided');
       return res.status(400).json({ message: "User ID is required" });
     }
 
-    const jobs = await Job.find({ sellerId: userId.toString() });
+    const userIdString = userId.toString();
+    console.log('[getUserJobs] Searching for sellerId:', userIdString);
+    
+    const jobs = await Job.find({ sellerId: userIdString });
+    
+    console.log('[getUserJobs] Found', jobs?.length || 0, 'jobs for user:', userIdString);
 
     // Return empty array instead of 404 to allow frontend to handle gracefully
     res.status(200).json(jobs || []);
   } catch (error) {
-    console.error("Error fetching user jobs:", error);
+    console.error("[getUserJobs] Error fetching user jobs:", error);
     res.status(500).json({ message: "Server Error", error: error.message });
   }
 };

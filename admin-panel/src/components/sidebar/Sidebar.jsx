@@ -1,4 +1,4 @@
-import { useState, useContext } from 'react';
+import { useState, useContext, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Moon, Sun } from 'lucide-react';
 import { DarkModeContext } from '../../context/darkModeContext.jsx';
@@ -10,12 +10,32 @@ import { useLocalization } from '../../context/LocalizationContext';
 import sidebarTranslations from '../../localization/sidebar.json';
 
 const Sidebar = () => {
-  const [isOpen, setIsOpen] = useState(true);
+  // Start collapsed on small screens
+  const [isOpen, setIsOpen] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth >= 768;
+    }
+    return true;
+  });
   const location = useLocation();
   const navigate = useNavigate();
   const { isAdmin, hasPermission, logout, user } = useAuth();
   const { getTranslation } = useLocalization();
   const { darkMode, dispatch } = useContext(DarkModeContext);
+
+  // Auto-collapse on small screens
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768) {
+        setIsOpen(false);
+      }
+    };
+    
+    window.addEventListener('resize', handleResize);
+    handleResize(); // Check on mount
+    
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const handleToggleSidebar = () => setIsOpen(!isOpen);
 
