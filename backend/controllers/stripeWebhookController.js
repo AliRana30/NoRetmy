@@ -145,11 +145,14 @@ const processOrderPayment = async (paymentIntent) => {
   const { id, amount_received, payment_method, metadata } = paymentIntent;
   const { orderId, vatRate, discount } = metadata;
 
+  console.log('[Webhook] Processing order payment for PaymentIntent:', id);
+
   const order = await Order.findOneAndUpdate(
     { payment_intent: id },
     {
       isCompleted: true,
       status: 'started',
+      progress: 40, // Explicitly set progress since pre-save hook doesn't run with findOneAndUpdate
       isPaid: true,
       paymentStatus: 'completed',
       paymentMethod: payment_method,
@@ -173,6 +176,8 @@ const processOrderPayment = async (paymentIntent) => {
     console.error('[Webhook] Order not found for PaymentIntent:', id);
     return { success: false, message: 'Order not found' };
   }
+
+  console.log('[Webhook] Order updated successfully:', order._id, 'Status:', order.status, 'Progress:', order.progress);
 
   // Create payment milestone record
   const milestone = new PaymentMilestone({
@@ -270,20 +275,25 @@ const processPromotionPayment = async (paymentIntent) => {
   const { userId, gigId, promotionPlan, vatRate, baseAmount, vatAmount, platformFee, paymentType } = metadata;
   const mongoose = require('mongoose');
 
+  console.log('[Webhook] Processing promotion payment:', { id, userId, gigId, promotionPlan, paymentType });
+
   // Idempotency check
   const existingPurchase = await PromotionPurchase.findOne({ stripePaymentIntentId: id });
   if (existingPurchase) {
+    console.log('[Webhook] Promotion already processed:', id);
     return { success: true, message: 'Already processed' };
   }
 
   const { PROMOTION_PLANS, getPlan } = require('../utils/promotionPlans');
   const plan = getPlan(promotionPlan);
   if (!plan) {
+    console.error('[Webhook] Invalid promotion plan:', promotionPlan);
     return { success: false, message: 'Invalid promotion plan' };
   }
 
   const user = await User.findById(userId);
   if (!user) {
+    console.error('[Webhook] User not found for promotion:', userId);
     return { success: false, message: 'User not found' };
   }
 
@@ -311,6 +321,7 @@ const processPromotionPayment = async (paymentIntent) => {
   });
 
   await promotionPurchase.save();
+  console.log('[Webhook] Promotion purchase saved successfully:', promotionPurchase._id);
 
   // Notify user
   await notificationService.createNotification({

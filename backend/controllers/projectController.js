@@ -77,9 +77,10 @@ const getProjectsByUser = async (req, res) => {
     }
 
     // Fetch projects where userId matches, but exclude `userId` from response
+    // userId in Project model is ObjectId, so we can use it directly
     const projects = await Project.find({ userId }).select("-userId");
 
-    res.status(200).json(projects);
+    res.status(200).json(projects || []);
   } catch (error) {
     console.error("Error fetching projects:", error);
     res.status(500).json({ success: false, message: "Internal server error" });

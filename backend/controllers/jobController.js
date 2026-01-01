@@ -686,12 +686,10 @@ const getUserJobs = async (req, res) => {
 
     const jobs = await Job.find({ sellerId: userId.toString() });
 
-    if (!jobs || jobs.length === 0) {
-      return res.status(404).json({ message: "No jobs found" });
-    }
-
-    res.status(200).json(jobs);
+    // Return empty array instead of 404 to allow frontend to handle gracefully
+    res.status(200).json(jobs || []);
   } catch (error) {
+    console.error("Error fetching user jobs:", error);
     res.status(500).json({ message: "Server Error", error: error.message });
   }
 };
