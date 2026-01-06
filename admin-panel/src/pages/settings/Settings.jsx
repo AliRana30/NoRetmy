@@ -20,7 +20,6 @@ const Settings = () => {
   const [settings, setSettings] = useState({
     emailNotifications: true,
     pushNotifications: true,
-    weeklyDigest: false,
     twoFactorAuth: false,
     language: 'en',
   });

@@ -16,6 +16,8 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/Button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import SingleOrderSection from '../MilestoneOrderHandler';
+import OrderTimeline from '@/components/shared/OrderTimeline';
+import PaymentMilestones from '@/components/shared/PaymentMilestones';
 
 interface Milestone {
   _id: string;
@@ -106,25 +108,21 @@ const MilestoneOrderDisplay: React.FC<MilestoneOrderDisplayProps> = ({
         </div>
       </div>
 
-      <Card className="mb-6">
-        <CardContent className="pt-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h3 className="text-xl font-semibold">{orderDetails.gigTitle}</h3>
-              <div className="flex items-center space-x-2 mt-2">
-                <ShoppingCart className="h-5 w-5 text-gray-500" />
-                <span className="text-gray-600">Order #{orderDetails.orderId}</span>
-              </div>
-            </div>
-            <div className="flex items-center space-x-2">
-              <DollarSign className="h-6 w-6 text-primary" />
-              <span className="text-2xl font-bold text-primary">
-                ${orderDetails.orderPrice.toFixed(2)}
-              </span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="grid gap-6 md:grid-cols-2 mb-6">
+        <div>
+          <OrderTimeline
+            status={orderDetails?.orderStatus || orderDetails?.status || 'created'}
+            timeline={orderDetails?.timeline || []}
+            isPaid={orderDetails?.isPaid}
+            orderDate={orderDetails?.createdAt}
+            deliveryDate={orderDetails?.deliveryDate}
+            orderCompletionDate={orderDetails?.completedAt}
+          />
+        </div>
+        <div>
+          <PaymentMilestones orderId={orderDetails?.orderId} isSeller={false} />
+        </div>
+      </div>
 
       <div className="grid md:grid-cols-3 gap-6">
         <div className="md:col-span-1">

@@ -200,6 +200,11 @@ const createOrder = async (req, res) => {
       const rate = vatRate;
       const additionalData = { orderId: savedOrder._id.toString(), userId, vatRate: rate, discount: gig.discount };
 
+      // Clear any old payment_intent to avoid conflicts
+      savedOrder.payment_intent = "Temp";
+      savedOrder.paymentStatus = 'pending';
+      await savedOrder.save();
+
       const paymentIntentResponse = await createCustomerAndPaymentIntentUtil(newOrder.totalAmount, buyerEmail, "order_payment", additionalData);
       const { client_secret: secret, payment_intent } = paymentIntentResponse;
 
@@ -219,6 +224,47 @@ const createOrder = async (req, res) => {
         decription: "fdsffdsfds"
       }
       await sendOrderRequestEmail(buyerEmail, requestDetails);
+    }
+
+    // Send order confirmation emails to buyer and seller
+    try {
+      const buyer = await User.findById(buyerId);
+      const seller = await User.findById(gig.sellerId);
+      const gigDetails = await Job.findById(order.gigId);
+
+      // Email to buyer with order confirmation
+      if (buyer && buyer.email) {
+        const orderDetailsForBuyer = {
+          _id: savedOrder._id,
+          price: savedOrder.price,
+          createdAt: savedOrder.createdAt,
+          vatRate: vatRate || 0,
+          customerName: buyer.fullName || buyer.username,
+          gigTitle: gigDetails?.title || 'Service',
+          discount: gig.discount || 0,
+          deliveryDate: savedOrder.deliveryDate,
+          totalAmount: savedOrder.totalAmount
+        };
+        await sendOrderSuccessEmail(buyer.email, orderDetailsForBuyer);
+        console.log('✅ Order confirmation email sent to buyer:', buyer.email);
+      }
+
+      // Email to seller about new order
+      if (seller && seller.email) {
+        const orderDetailsForSeller = {
+          orderId: savedOrder._id,
+          buyerName: buyer?.fullName || buyer?.username || 'Customer',
+          gigTitle: gigDetails?.title || 'Service',
+          price: savedOrder.price,
+          deliveryDate: savedOrder.deliveryDate,
+          orderType: savedOrder.type,
+          requirements: savedOrder.requirements || 'No specific requirements provided'
+        };
+        await sendSellerOrderNotificationEmail(seller.email, orderDetailsForSeller);
+        console.log('✅ New order notification sent to seller:', seller.email);
+      }
+    } catch (emailError) {
+      console.error('Error sending order creation emails:', emailError.message);
     }
 
     // Auto-create conversation between buyer and seller when order is created
@@ -351,7 +397,8 @@ const startOrder = async (req, res) => {
     const seller = await User.findById(userId);
     
     order.status = "started";
-    order.progress = 10; // Initial progress
+    order.progress = 40; // Started progress
+    order.paymentMilestoneStage = 'in_escrow'; // Update milestone stage
     
     const statusUpdate = {
       status: "started",
@@ -367,6 +414,44 @@ const startOrder = async (req, res) => {
       actor: 'seller'
     });
 
+    // Capture 50% escrow payment
+    if (order.paymentBreakdown && order.paymentBreakdown.escrowAmount > 0) {
+      try {
+        const PaymentMilestone = require('../models/PaymentMilestone');
+        const escrowMilestone = new PaymentMilestone({
+          orderId: order._id,
+          stage: 'in_escrow',
+          percentageOfTotal: 50,
+          amount: order.paymentBreakdown.escrowAmount,
+          currency: order.currency || 'USD',
+          stripePaymentIntentId: order.payment_intent,
+          paymentStatus: 'held_in_escrow',
+          capturedAt: new Date(),
+          triggeredBy: {
+            role: 'seller',
+            action: 'order_started'
+          }
+        });
+        await escrowMilestone.save();
+        
+        // Update order breakdown
+        order.paymentBreakdown.pendingReleaseAmount += order.paymentBreakdown.escrowAmount;
+        order.escrowStatus = 'full';
+        order.escrowLockedAt = new Date();
+        
+        order.timeline.push({
+          event: 'Escrow Captured',
+          description: `50% ($${order.paymentBreakdown.escrowAmount.toFixed(2)}) captured and held in escrow`,
+          timestamp: new Date(),
+          actor: 'system'
+        });
+        
+        console.log('[Order Start] 50% escrow captured:', order.paymentBreakdown.escrowAmount);
+      } catch (escrowError) {
+        console.error('[Order Start] Error capturing escrow:', escrowError);
+      }
+    }
+
     await order.save();
 
     // Send notification to buyer
@@ -377,8 +462,28 @@ const startOrder = async (req, res) => {
         order._id.toString(),
         gig?.title || 'Order'
       );
-    } catch (notifError) {
+
+      // Send email notification to buyer that work has started
+      const buyer = await User.findById(order.buyerId);
+      if (buyer && buyer.email) {
+        await sendUserNotificationEmail(
+          buyer.email,
+          'order_started',
+          `Work has started on your order #${order._id}`,
+          'buyer',
+          {
+            orderId: order._id,
+            gigTitle: gig?.title || 'Service',
+            sellerName: seller?.fullName || seller?.username || 'Freelancer',
+            deliveryDate: order.deliveryDate,
+            startedAt: order.statusHistory[order.statusHistory.length - 1].changedAt
+          }
+        );
+        console.log('\u2705 Order started email sent to buyer:', buyer.email);
       }
+    } catch (notifError) {
+      console.error('Error sending order started notification:', notifError);
+    }
 
     res.status(200).json({ message: "Order started successfully", order });
   } catch (error) {
@@ -427,7 +532,8 @@ const deliverOrder = async (req, res) => {
     order.status = "delivered";
     order.deliveryDescription = deliveryDescription;
     order.deliveryAttachments = uploadedFiles;
-    order.progress = 100; // Delivery means 100% progress
+    order.progress = 70; // Delivery is at 70%
+    order.paymentMilestoneStage = 'delivered'; // Update milestone stage
 
     const statusUpdate = {
       status: "delivered",
@@ -445,6 +551,41 @@ const deliverOrder = async (req, res) => {
       timestamp: new Date(),
       actor: 'seller'
     });
+    
+    // Capture 20% delivery payment
+    if (order.paymentBreakdown && order.paymentBreakdown.deliveryAmount > 0) {
+      try {
+        const PaymentMilestone = require('../models/PaymentMilestone');
+        const deliveryMilestone = new PaymentMilestone({
+          orderId: order._id,
+          stage: 'delivered',
+          percentageOfTotal: 20,
+          amount: order.paymentBreakdown.deliveryAmount,
+          currency: order.currency || 'USD',
+          stripePaymentIntentId: order.payment_intent,
+          paymentStatus: 'pending_release',
+          capturedAt: new Date(),
+          triggeredBy: {
+            role: 'seller',
+            action: 'order_delivered'
+          }
+        });
+        await deliveryMilestone.save();
+        
+        order.paymentBreakdown.pendingReleaseAmount += order.paymentBreakdown.deliveryAmount;
+        
+        order.timeline.push({
+          event: 'Delivery Payment Captured',
+          description: `20% ($${order.paymentBreakdown.deliveryAmount.toFixed(2)}) captured on delivery`,
+          timestamp: new Date(),
+          actor: 'system'
+        });
+        
+        console.log('[Order Delivery] 20% delivery payment captured:', order.paymentBreakdown.deliveryAmount);
+      } catch (deliveryError) {
+        console.error('[Order Delivery] Error capturing delivery payment:', deliveryError);
+      }
+    }
     
     await order.save();
     
@@ -540,8 +681,30 @@ const requestRevision = async (req, res) => {
         gig?.title || 'Order',
         reason
       );
-    } catch (notifError) {
+
+      // Send email to seller about revision request
+      const seller = await User.findById(order.sellerId);
+      const buyer = await User.findById(userId);
+      if (seller && seller.email) {
+        const revisionDetails = {
+          orderId: order._id,
+          gigTitle: gig?.title || 'Service',
+          buyerName: buyer?.fullName || buyer?.username || 'Customer',
+          revisionReason: reason,
+          orderStatus: order.status
+        };
+        await sendUserNotificationEmail(
+          seller.email,
+          'revision_requested',
+          `Revision requested for Order #${order._id}. Reason: ${reason}`,
+          'seller',
+          revisionDetails
+        );
+        console.log('✅ Revision request email sent to seller:', seller.email);
       }
+    } catch (notifError) {
+      console.error('Error sending revision notification:', notifError);
+    }
 
     res.status(200).json({ message: "Revision requested successfully", order });
   } catch (error) {
@@ -576,6 +739,8 @@ const acceptOrder = async (req, res) => {
     order.status = "completed";
     order.orderCompletionDate = completionDate;
     order.isCompleted = true;
+    order.progress = 100; // Set to 100% when completed
+    order.paymentMilestoneStage = 'reviewed'; // Update milestone stage
     
     // Calculate completion time and deadline status
     const createdDate = new Date(order.createdAt);
@@ -602,6 +767,41 @@ const acceptOrder = async (req, res) => {
       actor: 'buyer'
     });
 
+    // Capture 20% review payment before releasing funds
+    if (order.paymentBreakdown && order.paymentBreakdown.reviewAmount > 0) {
+      try {
+        const PaymentMilestone = require('../models/PaymentMilestone');
+        const reviewMilestone = new PaymentMilestone({
+          orderId: order._id,
+          stage: 'reviewed',
+          percentageOfTotal: 20,
+          amount: order.paymentBreakdown.reviewAmount,
+          currency: order.currency || 'USD',
+          stripePaymentIntentId: order.payment_intent,
+          paymentStatus: 'captured',
+          capturedAt: new Date(),
+          triggeredBy: {
+            role: 'buyer',
+            action: 'order_accepted'
+          }
+        });
+        await reviewMilestone.save();
+        
+        order.paymentBreakdown.pendingReleaseAmount += order.paymentBreakdown.reviewAmount;
+        
+        order.timeline.push({
+          event: 'Review Payment Captured',
+          description: `20% ($${order.paymentBreakdown.reviewAmount.toFixed(2)}) final payment captured on review`,
+          timestamp: new Date(),
+          actor: 'system'
+        });
+        
+        console.log('[Order Accept] 20% review payment captured:', order.paymentBreakdown.reviewAmount);
+      } catch (reviewError) {
+        console.error('[Order Accept] Error capturing review payment:', reviewError);
+      }
+    }
+
     const gigId = order.gigId;
 
     const updatedGig = await Job.findByIdAndUpdate(
@@ -618,12 +818,14 @@ const acceptOrder = async (req, res) => {
       const paymentMilestoneService = require('../services/paymentMilestoneService');
       const Freelancer = require('../models/Freelancer');
       
-      const amountToRelease = getSellerPayout(order.price);
+      // Release the full amount (100% of captured payments)
+      const totalCapturedAmount = order.paymentBreakdown.pendingReleaseAmount || 0;
+      const amountToRelease = getSellerPayout(totalCapturedAmount);
       const seller = await User.findById(order.sellerId);
       
       if (seller) {
         seller.revenue.available += amountToRelease;
-        seller.revenue.pending = Math.max(0, seller.revenue.pending - amountToRelease);
+        seller.revenue.pending = Math.max(0, seller.revenue.pending - totalCapturedAmount);
         await seller.save();
         }
       
@@ -638,9 +840,11 @@ const acceptOrder = async (req, res) => {
       order.escrowStatus = 'released';
       order.paymentBreakdown = {
         ...order.paymentBreakdown,
-        totalReleasedAmount: amountToRelease,
+        totalReleasedAmount: totalCapturedAmount,
         pendingReleaseAmount: 0,
-        escrowAmount: 0
+        escrowAmount: 0,
+        deliveryAmount: 0,
+        reviewAmount: 0
       };
       order.fundsReleasedAt = new Date();
       
@@ -679,7 +883,8 @@ const acceptOrder = async (req, res) => {
       // Send email notification to seller
       if (seller && seller.email) {
         const { getSellerPayout } = require('../services/priceUtil');
-        const amountEarned = getSellerPayout(order.price);
+        const totalCapturedAmount = order.paymentBreakdown.totalReleasedAmount || 0;
+        const amountEarned = getSellerPayout(totalCapturedAmount);
         
         await sendOrderCompletedEmail(seller.email, {
           orderId: order._id.toString(),
@@ -687,10 +892,30 @@ const acceptOrder = async (req, res) => {
           buyerName: buyer?.username || 'The client',
           gigTitle: gig?.title || 'Order',
           amount: amountEarned,
-          isForSeller: true
+          totalAmount: totalCapturedAmount,
+          isForSeller: true,
+          completedAt: order.orderCompletionDate,
+          deadlineMet: order.deadlineMet
         }).catch(err => {
           console.error("Error sending order completed email:", err);
         });
+        console.log('✅ Order completed email sent to seller:', seller.email);
+        
+        // Send payment received notification
+        await sendUserNotificationEmail(
+          seller.email,
+          'payment_received',
+          `Payment of $${amountEarned.toFixed(2)} has been released to your available balance for Order #${order._id}`,
+          'seller',
+          {
+            orderId: order._id,
+            gigTitle: gig?.title || 'Service',
+            buyerName: buyer?.fullName || buyer?.username || 'Customer',
+            totalAmount: totalCapturedAmount.toFixed(2),
+            sellerPayout: amountEarned.toFixed(2)
+          }
+        );
+        console.log('✅ Payment received email sent to seller:', seller.email);
       }
     } catch (notifError) {
       console.error("Error sending order completed notification:", notifError);
@@ -751,6 +976,20 @@ const confirmMilestoneOrCustomOrder = async (req, res) => {
     const totalAmountWithFeesAndTax = getAmountWithFeeAndTax(price, rate);
 
     const orderDetails = { userId, orderId, vatRate: rate }
+
+    // Cancel any old payment_intent to prevent "No such payment_intent" errors
+    if (order.payment_intent && order.payment_intent !== "Temp") {
+      try {
+        const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+        await stripe.paymentIntents.cancel(order.payment_intent);
+        console.log('Cancelled old payment intent:', order.payment_intent);
+      } catch (cancelError) {
+        console.log('Could not cancel old payment intent (may not exist):', cancelError.message);
+      }
+    }
+    order.payment_intent = "Temp";
+    order.paymentStatus = 'pending';
+    await order.save();
 
     const paymentIntentResponse = await createCustomerAndPaymentIntentUtil(totalAmountWithFeesAndTax, email, "order_payment", orderDetails);
 

@@ -3,6 +3,7 @@ const { sendUserNotificationEmail } = require("../services/emailService");
 const UserProfile = require('../models/UserProfile');
 const Reviews = require('../models/Review');
 const Job = require('../models/Job');
+const Order = require('../models/Order');
 const { uploadDocuments } = require("./uploadController");
 
 const getAllUsers = async (req, res) => {
@@ -84,12 +85,25 @@ const getVerifiedSellers = async (req, res) => {
 
     const verifiedSellers = await User.find(
       query,
-      '_id fullName documentImages isCompany isBlocked isWarned email username profilePicture isVerified role sellerType documentUrl createdAt' 
-    );
+      '_id fullName documentImages isCompany isBlocked isWarned email username profilePicture isVerified role sellerType documentUrl createdAt'
+    ).lean();
 
-    res.status(200).json(
-      verifiedSellers
-    );
+    const userIds = verifiedSellers.map(u => u._id);
+    const userProfiles = await UserProfile.find({ userId: { $in: userIds } })
+      .select('userId profilePicture')
+      .lean();
+
+    const profileMap = {};
+    userProfiles.forEach(profile => {
+      profileMap[profile.userId.toString()] = profile.profilePicture;
+    });
+
+    const enriched = verifiedSellers.map(u => ({
+      ...u,
+      profilePicture: profileMap[u._id.toString()] || u.profilePicture
+    }));
+
+    res.status(200).json(enriched);
 
   } catch (error) {
     console.error('Error fetching verified sellers:', error);
@@ -356,14 +370,30 @@ const getSellerData = async (req, res) => {
       skills: [],
       reviews: [],
       averageRating: 0,
+      completedOrders: 0,
+      totalReviews: 0,
+      revenue: {
+        total: 0,
+        available: 0,
+        pending: 0,
+        withdrawn: 0,
+      },
     };
 
     // Fetch user and profile data
-    const user = await User.findById(userId).select('fullName username createdAt');
+    const user = await User.findById(userId).select('fullName username createdAt revenue');
     if (user) {
       responseData.fullName = user.fullName;
       responseData.username = user.username;
       responseData.createdAt = user.createdAt;
+      if (user.revenue) {
+        responseData.revenue = {
+          total: user.revenue.total || 0,
+          available: user.revenue.available || 0,
+          pending: user.revenue.pending || 0,
+          withdrawn: user.revenue.withdrawn || 0,
+        };
+      }
     }
 
     const userProfile = await UserProfile.findOne({ userId }).select('location country countryCode profilePicture profileHeadline description skills');
@@ -377,26 +407,80 @@ const getSellerData = async (req, res) => {
       responseData.skills = userProfile.skills;
     }
 
-    // Fetch gigs posted by the seller - ensure userId is stringified for String field matching
-    const sellerGigs = await Job.find({ sellerId: userId.toString() }).select('_id');
-    const gigIds = sellerGigs.map((gig) => gig._id.toString());
+    // Fetch reviews for the seller - MATCH ADMIN LOGIC EXACTLY (no isApproved filter)
+    const sellerIdStr = userId.toString();
+    
+    // Get average rating and total reviews using same logic as admin getUserDetails
+    try {
+      const ratingResult = await Reviews.aggregate([
+        { $match: { sellerId: sellerIdStr } },
+        { $group: { _id: null, avgRating: { $avg: '$star' }, count: { $sum: 1 } } }
+      ]);
+      responseData.averageRating = ratingResult[0]?.avgRating || 0;
+      responseData.totalReviews = ratingResult[0]?.count || 0;
+    } catch (e) {
+      console.error('Error fetching average rating:', e);
+    }
 
-    if (gigIds.length > 0) {
-      // Fetch reviews for the seller's gigs
-      const reviews = await Reviews.find({ gigId: { $in: gigIds } });
-      responseData.reviews = reviews.map((review) => ({
-        gigId: review.gigId,
+    // Get completed orders count - MATCH ADMIN LOGIC
+    try {
+      responseData.completedOrders = await Order.countDocuments({
+        sellerId: sellerIdStr,
+        status: 'completed'
+      });
+    } catch (e) {
+      console.error('Error fetching completed orders:', e);
+    }
+
+    // Fetch actual review documents for display
+    const sellerReviews = await Reviews.find({ sellerId: sellerIdStr })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    if (sellerReviews.length > 0) {
+      const reviewGigIds = [...new Set(sellerReviews.map((r) => r.gigId).filter(Boolean))];
+      const gigs = await Job.find({ _id: { $in: reviewGigIds } }).select('_id title').lean();
+      const gigTitleMap = {};
+      gigs.forEach((g) => {
+        gigTitleMap[g._id.toString()] = g.title;
+      });
+
+      responseData.reviews = sellerReviews.map((review) => ({
+        _id: review._id,
+        gigId: gigTitleMap[review.gigId]
+          ? { title: gigTitleMap[review.gigId] }
+          : review.gigId,
+        userId: {
+          username: review.reviewerName || 'Anonymous',
+          profilePicture: review.reviewerImage || undefined,
+        },
         star: review.star,
         desc: review.desc,
         createdAt: review.createdAt,
       }));
-
-      // Calculate the average rating
-      if (reviews.length > 0) {
-        responseData.averageRating =
-          reviews.reduce((acc, review) => acc + review.star, 0) / reviews.length;
-      }
     }
+
+    // Calculate earnings - MATCH ADMIN LOGIC EXACTLY
+    try {
+      // Matching Admin Logic: { sellerId: userId, status: 'completed' }, $sum: '$price'
+      const earningsAgg = await Order.aggregate([
+        { $match: { sellerId: sellerIdStr, status: 'completed' } },
+        { $group: { _id: null, total: { $sum: '$price' } } }
+      ]);
+
+      const computedTotal = earningsAgg[0]?.total || 0;
+
+      // Always set computed total as the source of truth
+      responseData.revenue = {
+        total: computedTotal,
+        available: responseData.revenue?.available || 0,
+        pending: responseData.revenue?.pending || 0,
+        withdrawn: responseData.revenue?.withdrawn || 0
+      };
+    } catch (e) {
+      console.error("Error calculating earnings:", e);
+    }
+
 
     // Check if no data was found in any of the models
     const noData =

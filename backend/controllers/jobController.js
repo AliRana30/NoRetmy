@@ -509,6 +509,8 @@ const getAllJobs = async (req, res) => {
       starNumber: 1,
       sellerId: 1,
       jobStatus: 1,
+      createdAt: 1,
+      updatedAt: 1,
     };
 
     const jobs = await Job.find(filters, projection).lean();
@@ -925,13 +927,23 @@ const getFeaturedJobs = async (req, res) => {
       );
     }
 
+    // Fetch reviews count for each gig
+    const gigIds = sortedJobs.map(job => job._id.toString());
+    const reviewsCounts = await Reviews.aggregate([
+      { $match: { gigId: { $in: gigIds } } },
+      { $group: { _id: '$gigId', count: { $sum: 1 } } }
+    ]);
+    const reviewsMap = new Map(reviewsCounts.map(r => [r._id, r.count]));
+
     // Add seller badge and seller info to each job
     const jobsWithExtras = convertedJobs.map(job => {
       const sellerBadge = badgeMap.get(job.sellerId?.toString()) || null;
       const sellerInfo = sellerMap.get(job.sellerId?.toString()) || { username: 'Unknown', profilePicture: '/default-avatar.png' };
+      const reviewsCount = reviewsMap.get(job._id.toString()) || 0;
       
       return {
         ...job,
+        reviews: reviewsCount,
         seller: {
           username: sellerInfo.username,
           profilePicture: sellerInfo.profilePicture
@@ -1130,9 +1142,10 @@ const getGigDetails = async (gigId, lang = 'en') => {
     // Get seller level based on performance metrics
     let sellerLevel = null;
     let sellerBadge = null;
+    let sellerStats = null;
     if (gig.sellerId) {
       try {
-        const sellerStats = await getSellerStatistics(gig.sellerId);
+        sellerStats = await getSellerStatistics(gig.sellerId);
         sellerLevel = sellerStats?.sellerLevel || null;
         
         // Fetch seller badge info
@@ -1162,6 +1175,8 @@ const getGigDetails = async (gigId, lang = 'en') => {
         profilePicture: userProfile?.profilePicture || "/default-avatar.png",
         sellerLevel: sellerLevel,
         badge: sellerBadge,
+        successScore: sellerStats?.successScore ?? null,
+        completionRate: sellerStats?.completionRate ?? null,
       },
       reviews: reviewsWithUserDetails,
       averageRating,

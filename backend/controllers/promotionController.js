@@ -418,30 +418,47 @@ const deletePromotion = async (req, res) => {
       return res.status(400).json({ error: "Promotion ID is required" });
     }
 
-    // Find the promotion
-    const promotion = await Promotion.findById(promotionId);
+    const now = new Date();
 
-    if (!promotion) {
-      return res.status(404).json({ error: "Promotion not found" });
-    }
+    // Prefer PromotionPurchase (single source of truth)
+    const purchase = await PromotionPurchase.findById(promotionId);
+    if (purchase) {
+      if (purchase.userId.toString() !== userId.toString()) {
+        return res.status(403).json({ error: "You can only delete your own promotions" });
+      }
 
-    // Verify ownership
-    if (promotion.userId.toString() !== userId.toString()) {
-      return res.status(403).json({ error: "You can only delete your own promotions" });
-    }
-
-    // Only allow deletion of non-active promotions
-    if (promotion.status === 'active') {
-      const now = new Date();
-      if (promotion.promotionEndDate > now) {
-        return res.status(400).json({ 
+      if (purchase.status === 'active' && purchase.expiresAt && purchase.expiresAt > now) {
+        return res.status(400).json({
           error: "Cannot delete an active promotion. You can cancel it instead.",
           suggestion: "Use the cancel endpoint to stop an active promotion"
         });
       }
+
+      await PromotionPurchase.findByIdAndDelete(promotionId);
+
+      return res.status(200).json({
+        success: true,
+        message: "Promotion deleted successfully"
+      });
     }
 
-    // Delete the promotion
+    // Fallback to legacy Promotion
+    const promotion = await Promotion.findById(promotionId);
+    if (!promotion) {
+      return res.status(404).json({ error: "Promotion not found" });
+    }
+
+    if (promotion.userId.toString() !== userId.toString()) {
+      return res.status(403).json({ error: "You can only delete your own promotions" });
+    }
+
+    if (promotion.status === 'active' && promotion.promotionEndDate > now) {
+      return res.status(400).json({
+        error: "Cannot delete an active promotion. You can cancel it instead.",
+        suggestion: "Use the cancel endpoint to stop an active promotion"
+      });
+    }
+
     await Promotion.findByIdAndDelete(promotionId);
 
     res.status(200).json({ 
@@ -470,32 +487,58 @@ const cancelPromotion = async (req, res) => {
       return res.status(400).json({ error: "Promotion ID is required" });
     }
 
-    // Find the promotion
-    const promotion = await Promotion.findById(promotionId);
+    const now = new Date();
 
+    // Prefer PromotionPurchase (single source of truth)
+    const purchase = await PromotionPurchase.findById(promotionId);
+    if (purchase) {
+      if (purchase.userId.toString() !== userId.toString()) {
+        return res.status(403).json({ error: "You can only cancel your own promotions" });
+      }
+
+      if (purchase.status !== 'active' || (purchase.expiresAt && purchase.expiresAt <= now)) {
+        return res.status(400).json({
+          error: `Cannot cancel a promotion with status '${purchase.status}'`,
+          currentStatus: purchase.status
+        });
+      }
+
+      purchase.status = 'cancelled';
+      await purchase.save();
+
+      return res.status(200).json({
+        success: true,
+        message: "Promotion cancelled successfully",
+        promotion: {
+          _id: purchase._id,
+          status: purchase.status,
+          promotionPlan: purchase.planKey
+        }
+      });
+    }
+
+    // Fallback to legacy Promotion
+    const promotion = await Promotion.findById(promotionId);
     if (!promotion) {
       return res.status(404).json({ error: "Promotion not found" });
     }
 
-    // Verify ownership
     if (promotion.userId.toString() !== userId.toString()) {
       return res.status(403).json({ error: "You can only cancel your own promotions" });
     }
 
-    // Check if promotion is active
     if (promotion.status !== 'active') {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: `Cannot cancel a promotion with status '${promotion.status}'`,
         currentStatus: promotion.status
       });
     }
 
-    // Cancel the promotion
     promotion.status = 'cancelled';
     await promotion.save();
 
-    res.status(200).json({ 
-      success: true, 
+    res.status(200).json({
+      success: true,
       message: "Promotion cancelled successfully",
       promotion: {
         _id: promotion._id,

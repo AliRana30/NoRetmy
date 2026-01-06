@@ -677,20 +677,23 @@ export const fetchDocumentsData = async () => {
       headers: getAuthHeaders()
     });
 
-    return response.data.map((user) => ({
+    const mapped = response.data.map((user) => ({
       _id: user._id,
       id: user._id,
       fullName: user.fullName,
       username: user.username,
       email: user.email,
-      img: user.profilePicture || "https://via.placeholder.com/40",
+      img: user.img || user.profilePicture || user.profileImage || user.profileImg || user.avatar || "https://via.placeholder.com/40",
       isCompany: user.isCompany,
       documentUrl: user.documentImages?.[0] || user.documentVerify || user.documentUrl || "",
       isWarned: user.isWarned,
       warningCount: user.warningCount || 0,
       isBlocked: user.isBlocked,
+      isVerified: !!user.isVerified,
       status: user.isBlocked ? "blocked" : user.isVerified ? "active" : "pending",
     }));
+
+    return mapped.filter((u) => !u.isVerified);
   } catch (error) {
     console.error("Error fetching documents data:", error);
     handleApiError(error);

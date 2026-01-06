@@ -190,6 +190,7 @@ const OrdersPage: React.FC = () => {
                 key={order._id}
                 order={order}
                 onViewDetails={handleViewDetails}
+                currentUserId={user?._id}
               />
             ))}
           </div>

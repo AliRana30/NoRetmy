@@ -30,28 +30,38 @@ const verifyToken = (req, res, next) => {
 // Original role checking for backward compatibility - now supports both old and new role systems
 const checkRole = (allowedRoles) => async (req, res, next) => {
     try {
+        const normalizeLegacyRole = (role) => {
+            const r = String(role || '').toLowerCase();
+            if (!r) return r;
+            if (r === 'freelancer') return 'seller';
+            if (r === 'client') return 'buyer';
+            return r;
+        };
+
         // Support both req.userRole (new) and req.isSeller (old)
-        let userRole = req.userRole || (req.isSeller ? "seller" : "buyer");
+        let userRole = normalizeLegacyRole(req.userRole || (req.isSeller ? "seller" : "buyer"));
         
         // If user data is available on the request (from enhanced middleware), use that
         if (req.user && req.user.role) {
             // Map new role system to old role names for compatibility
-            if (req.user.role === 'freelancer' || req.user.isSeller) {
+            const reqUserRole = normalizeLegacyRole(req.user.role);
+            if (reqUserRole === 'seller' || req.user.isSeller) {
                 userRole = 'seller';
-            } else if (req.user.role === 'client') {
+            } else if (reqUserRole === 'buyer') {
                 userRole = 'buyer';
-            } else if (req.user.role === 'admin') {
+            } else if (reqUserRole === 'admin') {
                 userRole = 'admin';
             }
         } else if (req.userId) {
             // Fetch user from database to get role
             const user = await User.findById(req.userId);
             if (user) {
-                if (user.role === 'freelancer' || user.isSeller) {
+                const dbRole = normalizeLegacyRole(user.role);
+                if (dbRole === 'seller' || user.isSeller) {
                     userRole = 'seller';
-                } else if (user.role === 'client') {
+                } else if (dbRole === 'buyer') {
                     userRole = 'buyer';
-                } else if (user.role === 'admin') {
+                } else if (dbRole === 'admin') {
                     userRole = 'admin';
                 }
             }
@@ -63,10 +73,11 @@ const checkRole = (allowedRoles) => async (req, res, next) => {
         }
 
         // Check if the user has an allowed role
-        if (!allowedRoles.includes(userRole)) {
+        const allowed = (Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles]).map(normalizeLegacyRole);
+        if (!allowed.includes(userRole)) {
             // Provide more specific error messages based on what role is required
             let errorMessage = "Access Denied! You do not have permission to perform this action.";
-            if (allowedRoles.includes('seller') && !allowedRoles.includes('buyer')) {
+            if (allowed.includes('seller') && !allowed.includes('buyer')) {
                 errorMessage = "This feature is only available to sellers. Please become a seller to access gig promotions.";
             }
             return res.status(403).json({ 
@@ -114,7 +125,7 @@ const verifyTokenEnhanced = async (req, res, next) => {
         }
 
         // Normalize role - handle both new role system and legacy isAdmin flag
-        let effectiveRole = user.role || 'client';
+        let effectiveRole = (user.role || 'client').toLowerCase();
         if (user.isAdmin === true) {
             effectiveRole = 'admin';
         }

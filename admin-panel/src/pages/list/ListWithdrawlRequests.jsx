@@ -164,7 +164,12 @@ const ListWithdrawlRequests = () => {
 
         {/* Main Content - Only show when not loading and no error */}
         {!loading && !error && (
-          <Datatable data={data} columns={getWithdrawalRequestsColumns(getTranslation).concat(actionColumn)} title="allWithdrawlRequests" />
+          <Datatable
+            data={data}
+            columns={getWithdrawalRequestsColumns(getTranslation).concat(actionColumn)}
+            title="allWithdrawlRequests"
+            showAddButton={false}
+          />
         )}
       </div>
     </div>

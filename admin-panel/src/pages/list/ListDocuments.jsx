@@ -6,7 +6,7 @@ import commonTranslations from "../../localization/common.json";
 import { LoadingSpinner, ErrorMessage } from "../../components/ui";
 import { FileCheck, Search, Eye, Ban, Unlock, RefreshCw, ChevronLeft, ChevronRight, X, Check, Download } from "lucide-react";
 import axios from "axios";
-import { API_CONFIG } from "../../config/api";
+import { API_CONFIG, getAuthHeaders } from "../../config/api";
 import toast from "react-hot-toast";
 
 const ListDocuments = () => {
@@ -65,7 +65,7 @@ const ListDocuments = () => {
       await axios.put(
         `${API_CONFIG.BASE_URL}/api/admin/users/${blockUserId}/block`,
         { reason: blockReason },
-        { withCredentials: true }
+        { withCredentials: true, headers: getAuthHeaders() }
       );
       toast.success('User blocked successfully!');
       setBlockModalOpen(false);
@@ -91,10 +91,11 @@ const ListDocuments = () => {
       await axios.put(
         `${API_CONFIG.BASE_URL}/api/admin/users/${userId}/verify`,
         {},
-        { withCredentials: true }
+        { withCredentials: true, headers: getAuthHeaders() }
       );
       toast.success('User verified successfully!');
-      loadData();
+      setData(prev => prev.filter(u => u._id !== userId));
+      setSelectedUser(prev => (prev && prev._id === userId ? null : prev));
     } catch (error) {
       console.error('Error verifying the user:', error);
       toast.error('Failed to verify user: ' + (error.response?.data?.message || error.message));
@@ -324,7 +325,11 @@ const ListDocuments = () => {
                           className="p-2 rounded-lg bg-orange-500/20 text-orange-500 hover:bg-orange-500/30 transition-colors disabled:opacity-50"
                           title="Approve"
                         >
-                          <Check className="w-4 h-4" />
+                          {actionLoading === user._id + '-approve' ? (
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Check className="w-4 h-4" />
+                          )}
                         </button>
                       )}
                       
@@ -461,11 +466,21 @@ const ListDocuments = () => {
             <div className="flex gap-3 mt-6">
               {!selectedUser.isVerified && (
                 <button
-                  onClick={() => { handleApprove(selectedUser._id); setSelectedUser(null); }}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-medium transition-colors"
+                  onClick={() => handleApprove(selectedUser._id)}
+                  disabled={actionLoading === selectedUser._id + '-approve'}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-medium transition-colors disabled:opacity-50"
                 >
-                  <Check className="w-5 h-5" />
-                  Approve
+                  {actionLoading === selectedUser._id + '-approve' ? (
+                    <>
+                      <RefreshCw className="w-5 h-5 animate-spin" />
+                      Approving...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-5 h-5" />
+                      Approve
+                    </>
+                  )}
                 </button>
               )}
               <button

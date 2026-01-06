@@ -3,6 +3,13 @@ import React, { useState } from 'react';
 import { Calendar, Clock, Users, Package, CheckCircle, XCircle, AlertCircle, Trash2, Ban } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface Promotion {
   _id: string;
@@ -31,6 +38,11 @@ interface PromotionPlanHistoryProps {
 const PromotionPlanHistory = ({ promotionHistory = [], onRefresh }: PromotionPlanHistoryProps) => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [confirmAction, setConfirmAction] = useState<
+    | { type: 'delete'; id: string }
+    | { type: 'cancel'; id: string }
+    | null
+  >(null);
   const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL;
 
   // Function to format date
@@ -91,10 +103,7 @@ const PromotionPlanHistory = ({ promotionHistory = [], onRefresh }: PromotionPla
     return planNames[planId] || planId;
   };
 
-  // Handle delete promotion
-  const handleDelete = async (promotionId: string) => {
-    if (!confirm('Are you sure you want to delete this promotion?')) return;
-
+  const executeDelete = async (promotionId: string) => {
     setDeletingId(promotionId);
     try {
       await axios.delete(`${BACKEND_URL}/subscription/${promotionId}`, {
@@ -102,6 +111,7 @@ const PromotionPlanHistory = ({ promotionHistory = [], onRefresh }: PromotionPla
       });
       toast.success('Promotion deleted successfully');
       onRefresh?.();
+      setConfirmAction(null);
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to delete promotion');
     } finally {
@@ -109,10 +119,7 @@ const PromotionPlanHistory = ({ promotionHistory = [], onRefresh }: PromotionPla
     }
   };
 
-  // Handle cancel promotion
-  const handleCancel = async (promotionId: string) => {
-    if (!confirm('Are you sure you want to cancel this promotion? This action cannot be undone.')) return;
-
+  const executeCancel = async (promotionId: string) => {
     setCancellingId(promotionId);
     try {
       await axios.put(`${BACKEND_URL}/subscription/${promotionId}/cancel`, {}, {
@@ -120,11 +127,21 @@ const PromotionPlanHistory = ({ promotionHistory = [], onRefresh }: PromotionPla
       });
       toast.success('Promotion cancelled successfully');
       onRefresh?.();
+      setConfirmAction(null);
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to cancel promotion');
     } finally {
       setCancellingId(null);
     }
+  };
+
+  const handleConfirm = async () => {
+    if (!confirmAction) return;
+    if (confirmAction.type === 'delete') {
+      await executeDelete(confirmAction.id);
+      return;
+    }
+    await executeCancel(confirmAction.id);
   };
 
   // Check if promotion can be deleted
@@ -143,6 +160,51 @@ const PromotionPlanHistory = ({ promotionHistory = [], onRefresh }: PromotionPla
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-6xl">
+      <Dialog open={!!confirmAction} onOpenChange={(open) => !open && setConfirmAction(null)}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>
+              {confirmAction?.type === 'cancel' ? 'Cancel promotion?' : 'Delete promotion?'}
+            </DialogTitle>
+            <DialogDescription>
+              {confirmAction?.type === 'cancel'
+                ? 'This will cancel the active promotion. This action cannot be undone.'
+                : 'This will permanently delete the promotion from your history.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setConfirmAction(null)}
+              className="px-4 py-2 text-sm rounded-lg border border-gray-200 hover:bg-gray-50"
+              disabled={
+                (confirmAction?.type === 'delete' && deletingId === confirmAction.id) ||
+                (confirmAction?.type === 'cancel' && cancellingId === confirmAction.id)
+              }
+            >
+              Close
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirm}
+              className="px-4 py-2 text-sm rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+              disabled={
+                !confirmAction ||
+                (confirmAction.type === 'delete' && deletingId === confirmAction.id) ||
+                (confirmAction.type === 'cancel' && cancellingId === confirmAction.id)
+              }
+            >
+              {confirmAction?.type === 'cancel'
+                ? cancellingId === confirmAction.id
+                  ? 'Cancelling...'
+                  : 'Cancel'
+                : deletingId === confirmAction?.id
+                  ? 'Deleting...'
+                  : 'Delete'}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
       {/* Active Promotions Section */}
       {activePromotions.length > 0 && (
         <div className="mb-8">
@@ -202,7 +264,7 @@ const PromotionPlanHistory = ({ promotionHistory = [], onRefresh }: PromotionPla
                         </div>
                         {canCancel(plan) && (
                           <button
-                            onClick={() => handleCancel(plan._id)}
+                            onClick={() => setConfirmAction({ type: 'cancel', id: plan._id })}
                             disabled={cancellingId === plan._id}
                             className="flex items-center gap-1 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
                           >
@@ -285,7 +347,7 @@ const PromotionPlanHistory = ({ promotionHistory = [], onRefresh }: PromotionPla
                       </div>
                       {canDelete(plan) && (
                         <button
-                          onClick={() => handleDelete(plan._id)}
+                          onClick={() => setConfirmAction({ type: 'delete', id: plan._id })}
                           disabled={deletingId === plan._id}
                           className="flex items-center gap-1 px-2 py-1 text-sm text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
                           title="Delete promotion"

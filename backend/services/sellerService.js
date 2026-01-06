@@ -86,118 +86,109 @@ const getSellerStatistics = async (sellerId) => {
       throw new Error("Invalid sellerId");
     }
 
-    // Fetch order-related data safely
-    // Count total orders that are not invitations and not pending
-    const totalOrders = await Order.countDocuments({ 
-      sellerId, 
-      $or: [
-        { isInvitation: false },
-        { isInvitation: { $exists: false } }
-      ],
-      status: { $nin: ['pending'] }
-    }) ?? 0;
-    
-    const activeOrders = await Order.countDocuments({ 
-      sellerId, 
-      status: { $in: ['accepted', 'requirementsSubmitted', 'started', 'halfwayDone', 'delivered', 'requestedRevision'] },
-    }) ?? 0;
-    
-    const cancelledOrders = await Order.countDocuments({ sellerId, status: 'cancelled' }) ?? 0;
-    
-    const completedOrders = await Order.countDocuments({ 
-      sellerId, 
+    const sellerIdStr = sellerId.toString();
+
+    // Matching Admin Panel Logic (getUserDetails)
+    // Remove "isInvitation" filter that was potentially hiding oders
+    const baseFilter = {
+      sellerId: sellerIdStr,
+    };
+
+    // Use simple 'completed' status matching Admin panel
+    const completedFilter = {
+      ...baseFilter,
       status: 'completed'
+    };
+
+    // Calculate seller rating - Match Admin Logic
+    const reviews = await Reviews.aggregate([
+      { $match: { sellerId: sellerIdStr } },
+      { $group: { _id: null, averageRating: { $avg: "$star" }, totalReviews: { $sum: 1 } } },
+    ]);
+    const rating = reviews?.[0]?.averageRating?.toFixed(1) ?? "0";
+    const totalReviews = reviews?.[0]?.totalReviews ?? 0;
+
+    // Fetch order-related data
+    const totalOrders = await Order.countDocuments({
+      ...baseFilter
     }) ?? 0;
+    
+    // Active: Not completed, not cancelled
+    const activeOrders = await Order.countDocuments({
+      ...baseFilter,
+      status: { $nin: ['completed', 'cancelled', 'disputed'] }
+    }) ?? 0;
+    
+    const cancelledOrders = await Order.countDocuments({
+      ...baseFilter,
+      status: 'cancelled',
+    }) ?? 0;
+    
+    const completedOrders = await Order.countDocuments(completedFilter) ?? 0;
 
     // Calculate on-time delivery rate
-    // Numerator: Completed orders delivered on time
     const onTimeDeliveries = await Order.countDocuments({
-      sellerId,
-      status: 'completed',
-      $expr: { $lte: ['$updatedAt', '$deliveryDate'] }
+      ...completedFilter,
+      deliveryDate: { $ne: null },
+      $expr: { $lte: ['$updatedAt', '$deliveryDate'] },
     }) ?? 0;
 
-    // Denominator: Completed orders + Active Late orders
-    // Active Late = Status NOT completed/cancelled AND current time > deliveryDate
-    const currentDateForLate = new Date();
-    const activeLateOrders = await Order.countDocuments({
-      sellerId,
-      status: { $nin: ['completed', 'cancelled', 'refunded'] },
-      deliveryDate: { $lt: currentDateForLate }
-    }) ?? 0;
-
-    const totalForOnTimeRate = completedOrders + activeLateOrders;
-    
-    // If no relevant orders, default to 100%
-    const onTimeDeliveryRate = totalForOnTimeRate > 0 
-      ? Math.round((onTimeDeliveries / totalForOnTimeRate) * 100) 
+    const onTimeDeliveryRate = completedOrders > 0 
+      ? Math.round((onTimeDeliveries / completedOrders) * 100) 
       : 100;
 
-    // Aggregate earnings - from completed orders
+    // Aggregate earnings - Match Admin Logic: Use '$price'
     const earnings = await Order.aggregate([
-      { $match: { sellerId: sellerId.toString(), status: 'completed' } },
-      { $group: { _id: null, totalEarnings: { $sum: { $ifNull: ['$baseAmount', '$price'] } } } }
+      { $match: completedFilter },
+      { $group: { _id: null, totalEarnings: { $sum: '$price' } } }
     ]);
-    // Seller gets 95% of the order price (5% platform fee)
-    const totalEarnings = (earnings?.[0]?.totalEarnings ?? 0) * 0.95;
+    const totalEarnings = earnings?.[0]?.totalEarnings ?? 0;
 
     // Handle available balance gracefully
     const freelancer = await Freelancer.findOne({ userId: sellerId }) || {};
     const availableForWithdrawalAmount = freelancer?.availableBalance ?? 0;
     const pendingClearance = freelancer?.pendingBalance ?? 0;
 
-    // Earnings in the current month (only completed orders)
+    // Earnings in the current month
     const currentMonthEarnings = await Order.aggregate([
       {
         $match: {
-          sellerId: sellerId.toString(),
-          status: 'completed',
-          createdAt: { $gte: firstDayOfMonth }
-        }
+          ...completedFilter,
+          createdAt: { $gte: firstDayOfMonth },
+        },
       },
-      { $group: { _id: null, totalCurrentMonthEarnings: { $sum: { $ifNull: ['$baseAmount', '$price'] } } } }
+      { $group: { _id: null, totalCurrentMonthEarnings: { $sum: '$price' } } }
     ]);
-    // Seller gets 95% after platform fee
-    const currentMonthTotalEarnings = (currentMonthEarnings?.[0]?.totalCurrentMonthEarnings ?? 0) * 0.95;
+    const currentMonthTotalEarnings = currentMonthEarnings?.[0]?.totalCurrentMonthEarnings ?? 0;
 
-    // Calculate average selling price from completed orders
+    // Calculate average selling price
     const averageSellingPrice = await Order.aggregate([
-      { $match: { sellerId: sellerId.toString(), status: 'completed' } },
-      { $group: { _id: null, avgPrice: { $avg: { $ifNull: ['$baseAmount', '$price'] } } } }
+      { $match: completedFilter },
+      { $group: { _id: null, avgPrice: { $avg: '$price' } } }
     ]);
     const avgSellingPrice = averageSellingPrice?.[0]?.avgPrice ?? 0;
 
-    // Calculate seller rating safely
-    const reviews = await Reviews.aggregate([
-      { $match: { sellerId: sellerId.toString() } },
-      { $group: { _id: null, averageRating: { $avg: "$star" }, totalReviews: { $sum: 1 } } },
-    ]);
-    const rating = reviews?.[0]?.averageRating?.toFixed(1) ?? "0";
-    const totalReviews = reviews?.[0]?.totalReviews ?? 0;
-
-    // Fetch monthly earnings (only completed orders)
+    // Fetch monthly earnings
     const currentYear = new Date().getFullYear();
     const monthlyEarnings = await Order.aggregate([
       {
         $match: {
-          sellerId: sellerId.toString(),
-          status: 'completed',
-          createdAt: { $gte: new Date(currentYear, 0, 1), $lte: new Date(currentYear, 11, 31, 23, 59, 59) }
-        }
+          ...completedFilter,
+          createdAt: { $gte: new Date(currentYear, 0, 1), $lte: new Date(currentYear, 11, 31, 23, 59, 59) },
+        },
       },
-      { $group: { _id: { $month: "$createdAt" }, totalEarnings: { $sum: { $ifNull: ['$baseAmount', '$price'] } } } },
+      { $group: { _id: { $month: "$createdAt" }, totalEarnings: { $sum: '$price' } } },
       { $sort: { "_id": 1 } }
     ]);
 
     const monthlyEarningsArray = Array(12).fill(0);
     monthlyEarnings?.forEach(entry => {
-      // Seller gets 95% after platform fee
-      monthlyEarningsArray[entry._id - 1] = (entry.totalEarnings ?? 0) * 0.95;
+      monthlyEarningsArray[entry._id - 1] = entry.totalEarnings ?? 0;
     });
 
     // Calculate completion rate
-    const completionRate = totalOrders > 0 
-      ? Math.round(((totalOrders - cancelledOrders) / totalOrders) * 100)
+    const completionRate = totalOrders > 0
+      ? Math.round((completedOrders / totalOrders) * 100)
       : 100;
 
     // Response rate (placeholder - would need message tracking)
@@ -211,7 +202,7 @@ const getSellerStatistics = async (sellerId) => {
 
     // Get pending order invitations count
     const pendingInvitations = await Order.countDocuments({
-      sellerId,
+      sellerId: sellerIdStr,
       isInvitation: true,
       invitationStatus: 'pending'
     }) ?? 0;

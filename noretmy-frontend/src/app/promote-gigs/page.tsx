@@ -12,15 +12,61 @@ const PromoteGigs = () => {
   const [error, setError] = useState(null);
   const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL;
 
+  const normalizePromotions = (raw: any): any[] => {
+    const now = new Date();
+    if (!Array.isArray(raw)) return [];
+
+    return raw.map((p: any) => {
+      // PromotionPurchase shape
+      if (p?.planKey && (p?.expiresAt || p?.activatedAt || p?.purchasedAt)) {
+        const expiresAt = p.expiresAt ? new Date(p.expiresAt) : null;
+        const activatedAt = p.activatedAt ? new Date(p.activatedAt) : null;
+        const purchasedAt = p.purchasedAt ? new Date(p.purchasedAt) : null;
+        const createdAt = p.createdAt ? new Date(p.createdAt) : null;
+        const startDate = activatedAt || purchasedAt || createdAt || null;
+
+        const isActive = p.status === 'active' && !!expiresAt && expiresAt > now;
+        const remainingDays = expiresAt
+          ? Math.max(0, Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
+          : 0;
+
+        return {
+          _id: p._id,
+          promotionPlan: p.planKey,
+          status: p.status,
+          isActive,
+          isForAll: p.promotionType === 'all_gigs',
+          promotionStartDate: startDate ? startDate.toISOString() : null,
+          promotionEndDate: expiresAt ? expiresAt.toISOString() : null,
+          remainingDays,
+          durationDays: p.durationDays ?? 30,
+          amountPaid: p.totalAmount,
+          gig: p.gigId
+            ? {
+                _id: p.gigId._id,
+                title: p.gigId.title,
+                photos: p.gigId.photos,
+              }
+            : null,
+          createdAt: p.createdAt,
+        };
+      }
+
+      // Legacy Promotion shape (already compatible)
+      return p;
+    });
+  };
+
   const fetchPromotions = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${BACKEND_URL}/subscription/user`, {
+      const response = await axios.get(`${BACKEND_URL}/subscription/history`, {
         withCredentials: true
       });
 
       if (response.data) {
-        setPromotions(response.data);
+        const raw = Array.isArray(response.data) ? response.data : response.data.data;
+        setPromotions(normalizePromotions(raw));
       }
       setError(null);
     } catch (err: any) {

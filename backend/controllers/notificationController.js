@@ -84,7 +84,7 @@ const getUnreadNotificationCount = async (req, res) => {
 // Mark a single notification as read
 const markNotificationAsRead = async (req, res) => {
     try {
-        const { userId } = req;
+        const { userId, userRole, user } = req;
         const { notificationId } = req.params;
 
         if (!userId) {
@@ -101,9 +101,14 @@ const markNotificationAsRead = async (req, res) => {
             return res.status(404).json({ error: 'Notification not found' });
         }
 
-        // Check ownership - user can only mark their own notifications or global ones
-        if (!notification.isGlobal && notification.userId && notification.userId.toString() !== userId.toString()) {
-            return res.status(403).json({ error: 'You can only mark your own notifications as read' });
+        // Admins can mark any notification as read
+        const isAdmin = userRole === 'admin' || user?.role === 'admin' || req.isAdmin === true;
+
+        // Non-admins can only mark their own notifications or global ones
+        if (!isAdmin) {
+            if (!notification.isGlobal && notification.userId && notification.userId.toString() !== userId.toString()) {
+                return res.status(403).json({ error: 'You can only mark your own notifications as read' });
+            }
         }
 
         notification.isRead = true;

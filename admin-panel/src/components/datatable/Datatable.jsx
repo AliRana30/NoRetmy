@@ -6,7 +6,7 @@ import { useLocalization } from "../../context/LocalizationContext.jsx";
 import datatableTranslations from "../../localization/datatable.json";
 import { Plus } from "lucide-react";
 
-const Datatable = ({ data, columns, title = "allUsers", showAddButton = true }) => {
+const Datatable = ({ data, columns, title = "allUsers", showAddButton = true, addNewPath = "/content/faqs/addnewfaq" }) => {
   const { darkMode } = useContext(DarkModeContext);
   const { getTranslation } = useLocalization();
   
@@ -16,12 +16,16 @@ const Datatable = ({ data, columns, title = "allUsers", showAddButton = true }) 
     }`}>
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className={`text-xl font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-            {getTranslation(datatableTranslations, title)}
-          </h2>
-          {showAddButton && (
+          {title ? (
+            <h2 className={`text-xl font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+              {getTranslation(datatableTranslations, title)}
+            </h2>
+          ) : (
+            <div />
+          )}
+          {showAddButton && addNewPath && (
             <Link 
-              to="/content/faqs/addnewfaq" 
+              to={addNewPath}
               className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-medium transition-all"
             >
               <Plus className="w-4 h-4" />

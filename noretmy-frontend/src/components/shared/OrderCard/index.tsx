@@ -42,6 +42,7 @@ export interface Order {
 interface OrderCardProps {
   order: Order;
   onViewDetails: (orderId: string) => void;
+  currentUserId?: string;
 }
 
 const getStatusStyle = (
@@ -70,11 +71,15 @@ const getStatusStyle = (
   }
 };
 
-const OrderCard: React.FC<OrderCardProps> = ({ order, onViewDetails }) => {
+const OrderCard: React.FC<OrderCardProps> = ({ order, onViewDetails, currentUserId }) => {
   const { t } = useTranslations();
   const router = useRouter();
   const [showReviewModal, setShowReviewModal] = useState(false);
   const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL;
+
+  // Determine if current user is the seller or buyer
+  const isSeller = currentUserId && order?.sellerId?._id === currentUserId;
+  const messageButtonText = isSeller ? 'Message Buyer' : 'Message Seller';
 
   // Handle both formats: backend returns gig.title/image OR gigId.title/photos
   const gigPhoto =
@@ -210,7 +215,7 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onViewDetails }) => {
             className="flex w-full items-center justify-center gap-2 rounded-lg bg-orange-50 py-2 text-sm font-medium text-orange-600 hover:bg-orange-100 transition-colors"
           >
             <MessageCircle size={16} />
-            Message Seller
+            {messageButtonText}
           </button>
         )}
       </div>

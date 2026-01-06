@@ -83,6 +83,14 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
   const isOrderBuyer = user?._id === orderDetails?.buyerId || user?.id === orderDetails?.buyerId;
 
   const statusConfig = {
+    accepted: {
+      label: 'Payment Confirmed',
+      icon: <FaCheckCircle className="w-5 h-5" />,
+      color: 'text-black',
+      bgColor: 'bg-gray-100',
+      borderColor: 'border-gray-200',
+      description: 'Payment received and order has been accepted',
+    },
     completed: {
       label: 'Order Completed',
       icon: <FaCheckCircle className="w-5 h-5" />,
@@ -143,6 +151,7 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
 
   const statusOrder = [
     'created',
+    'accepted',
     'requirementsSubmitted',
     'started',
     'delivered',
@@ -153,6 +162,10 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
 
   // Calculate progress percentage for progress bar
   const progressPercentage = useMemo(() => {
+    const numericProgress = Number(orderDetails?.progress);
+    if (Number.isFinite(numericProgress) && numericProgress >= 0) {
+      return Math.min(Math.round(numericProgress), 100);
+    }
     const currentIndex = statusOrder.findIndex(
       (status) => status === orderStatus,
     );
@@ -162,7 +175,7 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
         100,
       )
       : 0;
-  }, [orderStatus]);
+  }, [orderDetails?.progress, orderStatus]);
 
   const filteredDropdownItems = useMemo(() => {
     return statusHistory
@@ -727,9 +740,7 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
         <div className="flex p-6">
           <div className="flex-1">
             <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-gray-800">
-                {orderDetails.gigTitle || 'Order Details'}
-              </h1>
+              <h1 className="text-2xl font-bold text-gray-800">Order Details</h1>
               <div
                 className={`ml-4 px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700`}
               >
@@ -765,43 +776,45 @@ const SingleOrderSection: React.FC<SingleOrderSectionProps> = ({
           />
         </div>
 
-        {/* Payment Milestones - Escrow Protection */}
-        <div className="mb-8">
-          <PaymentMilestones
-            orderId={orderDetails.orderId}
-            isSeller={isOrderSeller}
-            onMilestoneUpdate={onOperationComplete}
-          />
-        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          {/* Order Progress (left) */}
+          <div className="lg:col-span-2">
+            <OrderTimeline
+              status={orderStatus}
+              timeline={orderDetails.timeline || []}
+              isPaid={orderDetails.isPaid}
+              orderDate={orderDetails.createdAt}
+              deliveryDate={orderDetails.deliveryDate}
+              orderCompletionDate={orderDetails.orderCompletionDate}
+              isUserSeller={isOrderSeller}
+              isUserBuyer={isOrderBuyer}
+              orderId={orderDetails.orderId}
+              onApproveDelivery={handleAcceptDelivery}
+              onAdvanceStatus={handleAdvanceOrderStatus}
+            />
 
-        {/* Order Progress Timeline - Upwork Style */}
-        <div className="mb-8">
-          <OrderTimeline
-            status={orderStatus}
-            timeline={orderDetails.timeline || []}
-            isPaid={orderDetails.isPaid}
-            orderDate={orderDetails.createdAt}
-            deliveryDate={orderDetails.deliveryDate}
-            orderCompletionDate={orderDetails.orderCompletionDate}
-            isUserSeller={isOrderSeller}
-            isUserBuyer={isOrderBuyer}
-            orderId={orderDetails.orderId}
-            onApproveDelivery={handleAcceptDelivery}
-            onAdvanceStatus={handleAdvanceOrderStatus}
-          />
+            {/* Extend Timeline Button - Only for buyers on active orders */}
+            {isOrderBuyer && ['accepted', 'requirementsSubmitted', 'started', 'halfwayDone', 'delivered', 'requestedRevision'].includes(orderStatus) && (
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={() => setShowExtendTimeline(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all"
+                >
+                  <FaCalendarAlt className="w-4 h-4" />
+                  Extend Timeline
+                </button>
+              </div>
+            )}
+          </div>
 
-          {/* Extend Timeline Button - Only for buyers on active orders */}
-          {isOrderBuyer && ['accepted', 'requirementsSubmitted', 'started', 'halfwayDone', 'delivered', 'requestedRevision'].includes(orderStatus) && (
-            <div className="mt-4 flex justify-end">
-              <button
-                onClick={() => setShowExtendTimeline(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all"
-              >
-                <FaCalendarAlt className="w-4 h-4" />
-                Extend Timeline
-              </button>
-            </div>
-          )}
+          {/* Payment Protection (right) */}
+          <div className="lg:col-span-1">
+            <PaymentMilestones
+              orderId={orderDetails.orderId}
+              isSeller={isOrderSeller}
+              onMilestoneUpdate={onOperationComplete}
+            />
+          </div>
         </div>
 
         {/* Extend Timeline Modal */}

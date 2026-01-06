@@ -121,9 +121,11 @@ exports.createCustomerAndPaymentIntentUtil = async (amount, email, paymentType, 
       metadata,
     };
 
-    // Use manual capture for milestone orders
-    if (isMilestone || metadata.milestoneEnabled === 'true') {
-        intentParams.capture_method = 'manual';
+    // Use manual capture for ALL order payments to enable milestone-based captures (10%, 50%, 20%, 20%)
+    // This allows us to authorize the full amount but only capture portions as the order progresses
+    if (paymentType === 'order_payment') {
+      intentParams.capture_method = 'manual';
+      metadata.milestoneEnabled = 'true';
     }
 
     // Create a Payment Intent linked to the customer

@@ -11,10 +11,37 @@ const Contact = require('../models/Contact');
 const Project = require('../models/Project');
 const Promotion = require('../models/Promotion'); // Legacy
 const PromotionPurchase = require('../models/PromotionPurchase'); // New: Single source of truth
-const WithdrawRequest = require('../models/withdrawRequest');
+const WithdrawalRequest = require('../models/WithdrawalRequest');
 const Vat = require('../models/Vat');
 const { createAdminUser, updateUserRole: updateUserRoleService } = require('../services/authService');
 const mongoose = require('mongoose');
+const { 
+  notifyWithdrawalApproved,
+  notifyWithdrawalRejected
+} = require('../services/notificationService');
+
+const formatWithdrawalRequestForAdmin = (request) => ({
+  _id: request._id,
+  requestId: request._id,
+  userId: request.userId?._id,
+  username: request.userId?.username,
+  userEmail: request.userId?.email,
+  userFullName: request.userId?.fullName,
+  amount: request.amount,
+  withdrawalMethod: request.paymentMethod,
+  paymentMethod: request.paymentMethod,
+  accountDetails: request.accountDetails,
+  notes: request.notes,
+  status: request.status,
+  adminNote: request.adminNotes,
+  adminNotes: request.adminNotes,
+  rejectionReason: request.rejectionReason,
+  processedBy: request.processedBy,
+  processedAt: request.processedAt,
+  requestedAt: request.requestedAt,
+  createdAt: request.createdAt,
+  updatedAt: request.updatedAt
+});
 
 // ==================== DASHBOARD & ANALYTICS ====================
 
@@ -99,7 +126,7 @@ const getDashboardStats = async (req, res) => {
       ]).then(result => result[0]?.avgRating || 0),
       Message.countDocuments(),
       Conversation.countDocuments(),
-      WithdrawRequest.countDocuments({ status: 'pending' }),
+      WithdrawalRequest.countDocuments({ status: 'pending' }),
       PromotionPurchase.countDocuments(),
       PromotionPurchase.countDocuments({ status: 'active' }),
       Contact.countDocuments({ isRead: false }),
@@ -682,6 +709,30 @@ const blockUser = async (req, res) => {
 
     await user.save();
 
+    // Send email notification to user about block
+    try {
+      const { sendUserNotificationEmail } = require('../services/emailService');
+      if (user.email) {
+        const normalizedRole = (user.role || '').toLowerCase();
+        const notificationUserType = (normalizedRole === 'freelancer' || user.isSeller === true) ? 'seller' : 'client';
+        await sendUserNotificationEmail(
+          user.email,
+          'block',
+          reason,
+          notificationUserType,
+          {
+            reason: reason,
+            blockedAt: user.blockedAt,
+            expiresAt: user.blockExpiresAt,
+            duration: duration
+          }
+        );
+        console.log('✅ Block notification email sent to user:', user.email);
+      }
+    } catch (emailError) {
+      console.error('Error sending block notification email:', emailError.message);
+    }
+
     res.status(200).json({
       success: true,
       message: 'User blocked successfully',
@@ -761,6 +812,29 @@ const verifyUser = async (req, res) => {
 
     await user.save();
 
+    // Send email notification to user about verification approval
+    try {
+      const { sendUserNotificationEmail } = require('../services/emailService');
+      if (user.email) {
+        const normalizedRole = (user.role || '').toLowerCase();
+        const notificationUserType = (normalizedRole === 'freelancer' || user.isSeller === true) ? 'seller' : 'client';
+        await sendUserNotificationEmail(
+          user.email,
+          'verified',
+          'Your account has been verified and approved by our admin team.',
+          notificationUserType,
+          {
+            userId: userId,
+            verifiedAt: user.verifiedAt,
+            fullName: user.fullName || user.username
+          }
+        );
+        console.log('✅ Verification approval email sent to user:', user.email);
+      }
+    } catch (emailError) {
+      console.error('Error sending verification email:', emailError.message);
+    }
+
     res.status(200).json({
       success: true,
       code: 'USER_VERIFIED',
@@ -830,6 +904,30 @@ const warnUser = async (req, res) => {
       });
     } catch (notifError) {
       console.error('Failed to create notification:', notifError);
+    }
+
+    // Send email notification to user
+    try {
+      const { sendUserNotificationEmail } = require('../services/emailService');
+      if (user.email) {
+        const normalizedRole = (user.role || '').toLowerCase();
+        const notificationUserType = (normalizedRole === 'freelancer' || user.isSeller === true) ? 'seller' : 'client';
+        await sendUserNotificationEmail(
+          user.email,
+          'warn',
+          `Warning ${user.warningCount}: ${reason}`,
+          notificationUserType,
+          {
+            warningCount: user.warningCount,
+            reason: reason,
+            warnedAt: warning.warnedAt,
+            userId: userId
+          }
+        );
+        console.log('✅ Warning email sent to user:', user.email);
+      }
+    } catch (emailError) {
+      console.error('Error sending warning email:', emailError.message);
     }
 
     res.status(200).json({
@@ -1124,7 +1222,7 @@ const getAllOrders = async (req, res) => {
       .skip((page - 1) * limit)
       .populate('buyerId', 'fullName email username')
       .populate('sellerId', 'fullName email username')
-      .populate('jobId', 'title category');
+      .populate('gigId', 'title category');
 
     const total = await Order.countDocuments(filter);
 
@@ -1132,9 +1230,9 @@ const getAllOrders = async (req, res) => {
     const formattedOrders = orders.map((order) => ({
       _id: order._id,
       id: order._id,
-      gigId: order.jobId?._id || order.gigId,
-      gigTitle: order.jobId?.title,
-      gigCategory: order.jobId?.category,
+      gigId: order.gigId?._id || order.gigId,
+      gigTitle: order.gigId?.title,
+      gigCategory: order.gigId?.category,
       price: order.totalPrice || order.price,
       sellerId: order.sellerId?.username || order.sellerId?._id,
       sellerName: order.sellerId?.fullName,
@@ -1407,8 +1505,10 @@ const getFinancialOverview = async (req, res) => {
     }
 
     const [
-      totalRevenue,
-      periodRevenue,
+      allTimeOrderFees,
+      periodOrderFees,
+      allTimePromotionFees,
+      periodPromotionFees,
       pendingPayments,
       completedOrders,
       pendingWithdrawals,
@@ -1418,69 +1518,111 @@ const getFinancialOverview = async (req, res) => {
     ] = await Promise.all([
       Order.aggregate([
         { $match: { status: 'completed' } },
-        { $group: { _id: null, total: { $sum: { $ifNull: ['$totalAmount', '$price'] } } } }
+        { $group: { _id: null, total: { $sum: { $ifNull: ['$platformFee', 0] } } } }
       ]).then(result => result[0]?.total || 0),
-      
+
       Order.aggregate([
-        { 
-          $match: { 
+        {
+          $match: {
             status: 'completed',
-            createdAt: dateFilter 
-          } 
+            createdAt: dateFilter
+          }
         },
-        { $group: { _id: null, total: { $sum: { $ifNull: ['$totalAmount', '$price'] } } } }
+        { $group: { _id: null, total: { $sum: { $ifNull: ['$platformFee', 0] } } } }
       ]).then(result => result[0]?.total || 0),
-      
+
+      PromotionPurchase.aggregate([
+        { $group: { _id: null, total: { $sum: { $ifNull: ['$totalAmount', 0] } } } }
+      ]).then(result => result[0]?.total || 0),
+
+      PromotionPurchase.aggregate([
+        {
+          $match: {
+            createdAt: dateFilter
+          }
+        },
+        { $group: { _id: null, total: { $sum: { $ifNull: ['$totalAmount', 0] } } } }
+      ]).then(result => result[0]?.total || 0),
+
       Order.aggregate([
         { $match: { status: 'pending' } },
         { $group: { _id: null, total: { $sum: { $ifNull: ['$totalAmount', '$price'] } } } }
       ]).then(result => result[0]?.total || 0),
-      
+
       Order.countDocuments({ status: 'completed', createdAt: dateFilter }),
-      
-      WithdrawRequest.aggregate([
+
+      WithdrawalRequest.aggregate([
         { $match: { status: 'pending' } },
         { $group: { _id: null, total: { $sum: '$amount' } } }
       ]).then(result => result[0]?.total || 0),
-      
-      WithdrawRequest.aggregate([
-        { $match: { status: 'completed' } },
+
+      WithdrawalRequest.aggregate([
+        { $match: { status: { $in: ['approved', 'paid'] } } },
         { $group: { _id: null, total: { $sum: '$amount' } } }
       ]).then(result => result[0]?.total || 0),
-      
+
       Order.aggregate([
         { $match: { status: 'completed' } },
-        { $group: { _id: null, total: { $sum: '$platformFee' } } }
+        { $group: { _id: null, total: { $sum: { $ifNull: ['$platformFee', 0] } } } }
       ]).then(result => result[0]?.total || 0),
-      
+
       Order.aggregate([
         { $match: { status: 'refunded' } },
         { $group: { _id: null, total: { $sum: { $ifNull: ['$totalAmount', '$price'] } } } }
       ]).then(result => result[0]?.total || 0)
     ]);
 
-    // Revenue trend (last 7 days)
-    const revenueTrend = await Order.aggregate([
-      {
-        $match: {
-          status: 'completed',
-          createdAt: { $gte: new Date(now - 7 * 24 * 60 * 60 * 1000) }
-        }
-      },
-      {
-        $group: {
-          _id: {
-            $dateToString: {
-              format: '%Y-%m-%d',
-              date: '$createdAt'
-            }
-          },
-          revenue: { $sum: { $ifNull: ['$totalAmount', '$price'] } },
-          orders: { $sum: 1 }
-        }
-      },
-      { $sort: { _id: 1 } }
+    const totalRevenue = allTimeOrderFees + allTimePromotionFees;
+    const periodRevenue = periodOrderFees + periodPromotionFees;
+
+    const last7DaysStart = new Date(now - 7 * 24 * 60 * 60 * 1000);
+
+    const [orderFeeTrend, promotionFeeTrend] = await Promise.all([
+      Order.aggregate([
+        { $match: { status: 'completed', createdAt: { $gte: last7DaysStart } } },
+        {
+          $group: {
+            _id: {
+              $dateToString: {
+                format: '%Y-%m-%d',
+                date: '$createdAt'
+              }
+            },
+            revenue: { $sum: { $ifNull: ['$platformFee', 0] } },
+            orders: { $sum: 1 }
+          }
+        },
+        { $sort: { _id: 1 } }
+      ]),
+      PromotionPurchase.aggregate([
+        { $match: { createdAt: { $gte: last7DaysStart } } },
+        {
+          $group: {
+            _id: {
+              $dateToString: {
+                format: '%Y-%m-%d',
+                date: '$createdAt'
+              }
+            },
+            revenue: { $sum: { $ifNull: ['$totalAmount', 0] } },
+            orders: { $sum: 0 }
+          }
+        },
+        { $sort: { _id: 1 } }
+      ])
     ]);
+
+    const trendMap = new Map();
+    for (const row of orderFeeTrend) {
+      trendMap.set(row._id, { _id: row._id, revenue: row.revenue || 0, orders: row.orders || 0 });
+    }
+    for (const row of promotionFeeTrend) {
+      const existing = trendMap.get(row._id) || { _id: row._id, revenue: 0, orders: 0 };
+      existing.revenue += row.revenue || 0;
+      trendMap.set(row._id, existing);
+    }
+
+    const revenueTrend = Array.from(trendMap.values()).sort((a, b) => a._id.localeCompare(b._id));
 
     res.status(200).json({
       success: true,
@@ -1526,31 +1668,17 @@ const getWithdrawalRequests = async (req, res) => {
     const sort = {};
     sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
 
-    const withdrawalRequests = await WithdrawRequest.find(filter)
+    const withdrawalRequests = await WithdrawalRequest.find(filter)
       .sort(sort)
       .limit(limit * 1)
       .skip((page - 1) * limit)
-      .populate('userId', 'fullName email username');
+      .populate('userId', 'fullName email username')
+      .populate('processedBy', 'fullName email');
 
-    const total = await WithdrawRequest.countDocuments(filter);
+    const total = await WithdrawalRequest.countDocuments(filter);
 
     // Format data for frontend DataGrid (matching your existing structure)
-    const formattedRequests = withdrawalRequests.map((request) => ({
-      _id: request._id,
-      requestId: request._id,
-      userId: request.userId?._id,
-      username: request.userId?.username,
-      userEmail: request.userId?.email,
-      userFullName: request.userId?.fullName,
-      amount: request.amount,
-      withdrawalMethod: request.withdrawalMethod || request.method,
-      status: request.status,
-      adminNote: request.adminNote,
-      processedBy: request.processedBy,
-      processedAt: request.processedAt,
-      createdAt: request.createdAt,
-      updatedAt: request.updatedAt
-    }));
+    const formattedRequests = withdrawalRequests.map(formatWithdrawalRequestForAdmin);
 
     res.status(200).json({
       success: true,
@@ -1582,7 +1710,7 @@ const approveWithdrawal = async (req, res) => {
     const { withdrawalId } = req.params;
     const { adminNote } = req.body;
 
-    const withdrawal = await WithdrawRequest.findById(withdrawalId);
+    const withdrawal = await WithdrawalRequest.findById(withdrawalId);
     if (!withdrawal) {
       return res.status(404).json({
         success: false,
@@ -1590,12 +1718,29 @@ const approveWithdrawal = async (req, res) => {
       });
     }
 
+    if (withdrawal.status !== 'pending') {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot approve ${withdrawal.status} request`
+      });
+    }
+
     withdrawal.status = 'approved';
-    withdrawal.adminNote = adminNote;
+    withdrawal.adminNotes = adminNote;
     withdrawal.processedAt = new Date();
     withdrawal.processedBy = req.userId;
 
     await withdrawal.save();
+
+    const user = await User.findById(withdrawal.userId);
+    if (user) {
+      user.revenue.withdrawn = (user.revenue.withdrawn || 0) + withdrawal.amount;
+      await user.save();
+    }
+
+    try {
+      await notifyWithdrawalApproved(withdrawal.userId, withdrawal.amount, withdrawal._id);
+    } catch (e) {}
 
     res.status(200).json({
       success: true,
@@ -1617,7 +1762,7 @@ const rejectWithdrawal = async (req, res) => {
     const { withdrawalId } = req.params;
     const { reason } = req.body;
 
-    const withdrawal = await WithdrawRequest.findById(withdrawalId);
+    const withdrawal = await WithdrawalRequest.findById(withdrawalId);
     if (!withdrawal) {
       return res.status(404).json({
         success: false,
@@ -1625,12 +1770,30 @@ const rejectWithdrawal = async (req, res) => {
       });
     }
 
+    if (withdrawal.status !== 'pending') {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot reject ${withdrawal.status} request`
+      });
+    }
+
     withdrawal.status = 'rejected';
-    withdrawal.adminNote = reason;
+    withdrawal.rejectionReason = reason;
+    withdrawal.adminNotes = reason;
     withdrawal.processedAt = new Date();
     withdrawal.processedBy = req.userId;
 
     await withdrawal.save();
+
+    const user = await User.findById(withdrawal.userId);
+    if (user) {
+      user.revenue.available = (user.revenue.available || 0) + withdrawal.amount;
+      await user.save();
+    }
+
+    try {
+      await notifyWithdrawalRejected(withdrawal.userId, withdrawal.amount, withdrawal._id, reason);
+    } catch (e) {}
 
     res.status(200).json({
       success: true,
@@ -1642,6 +1805,109 @@ const rejectWithdrawal = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to reject withdrawal',
+      error: error.message
+    });
+  }
+};
+
+const getWithdrawalRequestDetail = async (req, res) => {
+  try {
+    const { withdrawalId } = req.params;
+
+    const withdrawal = await WithdrawalRequest.findById(withdrawalId)
+      .populate('userId', 'fullName email username')
+      .populate('processedBy', 'fullName email');
+
+    if (!withdrawal) {
+      return res.status(404).json({
+        success: false,
+        message: 'Withdrawal request not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: formatWithdrawalRequestForAdmin(withdrawal)
+    });
+  } catch (error) {
+    console.error('Get withdrawal request detail error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch withdrawal request detail',
+      error: error.message
+    });
+  }
+};
+
+const createWithdrawalRequestAdmin = async (req, res) => {
+  try {
+    const { userId, userEmail, amount, paymentMethod, accountDetails, notes } = req.body;
+
+    const withdrawalAmount = Number(amount);
+    if (!withdrawalAmount || Number.isNaN(withdrawalAmount) || withdrawalAmount < 10) {
+      return res.status(400).json({
+        success: false,
+        message: 'Minimum withdrawal amount is $10'
+      });
+    }
+
+    if (!paymentMethod) {
+      return res.status(400).json({
+        success: false,
+        message: 'Payment method is required'
+      });
+    }
+
+    let user = null;
+    if (userId) {
+      user = await User.findById(userId);
+    } else if (userEmail) {
+      user = await User.findOne({ email: userEmail });
+    }
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    const pendingRequest = await WithdrawalRequest.findOne({ userId: user._id, status: 'pending' });
+    if (pendingRequest) {
+      return res.status(400).json({
+        success: false,
+        message: 'User already has a pending withdrawal request'
+      });
+    }
+
+    if ((user.revenue?.available || 0) < withdrawalAmount) {
+      return res.status(400).json({
+        success: false,
+        message: `Insufficient balance. Available: $${user.revenue?.available || 0}`
+      });
+    }
+
+    const withdrawalRequest = await WithdrawalRequest.create({
+      userId: user._id,
+      amount: withdrawalAmount,
+      paymentMethod,
+      accountDetails,
+      notes
+    });
+
+    user.revenue.available -= withdrawalAmount;
+    await user.save();
+
+    res.status(201).json({
+      success: true,
+      message: 'Withdrawal request created successfully',
+      data: withdrawalRequest
+    });
+  } catch (error) {
+    console.error('Create admin withdrawal request error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create withdrawal request',
       error: error.message
     });
   }
@@ -2786,6 +3052,8 @@ module.exports = {
   // Financial Management
   getFinancialOverview,
   getWithdrawalRequests,
+  getWithdrawalRequestDetail,
+  createWithdrawalRequestAdmin,
   approveWithdrawal,
   rejectWithdrawal,
   

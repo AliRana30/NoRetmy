@@ -53,6 +53,9 @@ const processWebhookEvent = async (event) => {
 
   switch (type) {
     // Payment Intent Events
+    case 'payment_intent.amount_capturable_updated':
+      return await handlePaymentIntentAmountCapturableUpdated(object);
+
     case 'payment_intent.succeeded':
       return await handlePaymentIntentSucceeded(object);
       
@@ -124,7 +127,7 @@ const handlePaymentIntentSucceeded = async (paymentIntent) => {
 
     if (paymentType === 'order_payment') {
       return await processOrderPayment(paymentIntent);
-    } else if (paymentType === 'gig_promotion' || paymentType === 'monthly_promotion') {
+    } else if (paymentType === 'gig_promotion' || paymentType === 'monthly_promotion' || paymentType === 'monthly_promotional') {
       return await processPromotionPayment(paymentIntent);
     } else if (paymentType === 'timeline_extension') {
       return await processTimelineExtensionPayment(paymentIntent);
@@ -139,31 +142,66 @@ const handlePaymentIntentSucceeded = async (paymentIntent) => {
 };
 
 /**
+ * Handle manual-capture authorization event (fires after confirm for capture_method=manual)
+ * This is where we should initialize order state and capture the first 10%.
+ */
+const handlePaymentIntentAmountCapturableUpdated = async (paymentIntent) => {
+  const { id, metadata } = paymentIntent;
+  const paymentType = metadata?.paymentType;
+
+  try {
+    if (paymentType !== 'order_payment') {
+      return { success: true, message: 'Not an order payment' };
+    }
+
+    // Idempotency: if we already created the accepted milestone, skip
+    const existingMilestone = await PaymentMilestone.findOne({ stripePaymentIntentId: id, stage: 'accepted' });
+    if (existingMilestone) {
+      return { success: true, message: 'Already processed capturable event' };
+    }
+
+    return await processOrderPayment(paymentIntent);
+  } catch (error) {
+    console.error('[Webhook] Error processing payment_intent.amount_capturable_updated:', error);
+    return { success: false, message: error.message };
+  }
+};
+
+/**
  * Process order payment
  */
 const processOrderPayment = async (paymentIntent) => {
-  const { id, amount_received, payment_method, metadata } = paymentIntent;
+  const { id, amount_received, amount, payment_method, metadata } = paymentIntent;
   const { orderId, vatRate, discount } = metadata;
 
   console.log('[Webhook] Processing order payment for PaymentIntent:', id);
 
+  // Calculate milestone amounts based on total order amount
+  // With manual capture, amount_received can be 0 at authorization time, so fall back to amount.
+  const totalAmountCents = (amount_received && amount_received > 0) ? amount_received : amount;
+  const totalAmount = (totalAmountCents || 0) / 100;
+  const acceptedAmount = totalAmount * 0.10; // 10% on accept
+  const escrowAmount = totalAmount * 0.50;   // 50% in escrow
+  const deliveryAmount = totalAmount * 0.20; // 20% on delivery
+  const reviewAmount = totalAmount * 0.20;   // 20% on review
+
   const order = await Order.findOneAndUpdate(
     { payment_intent: id },
     {
-      isCompleted: true,
-      status: 'started',
-      progress: 40, // Explicitly set progress since pre-save hook doesn't run with findOneAndUpdate
+      isCompleted: false, // Order not fully completed yet
+      status: 'accepted', // Start at accepted status
+      progress: 20, // Set progress to 20 (accepted level)
       isPaid: true,
       paymentStatus: 'completed',
       paymentMethod: payment_method,
-      amount_received: amount_received / 100,
-      paymentMilestoneStage: 'in_escrow',
-      escrowStatus: 'full',
+      amount_received: totalAmount,
+      paymentMilestoneStage: 'accepted', // Start at accepted milestone
+      escrowStatus: 'partial', // Only partial amount captured
       $push: {
-        statusHistory: { status: 'started', createdAt: Date.now() },
+        statusHistory: { status: 'accepted', createdAt: Date.now() },
         timeline: {
           event: 'Payment Confirmed',
-          description: 'Payment secured in escrow. Order started.',
+          description: `Payment authorized. 10% ($${acceptedAmount.toFixed(2)}) captured for order acceptance.`,
           timestamp: new Date(),
           actor: 'system'
         }
@@ -179,15 +217,38 @@ const processOrderPayment = async (paymentIntent) => {
 
   console.log('[Webhook] Order updated successfully:', order._id, 'Status:', order.status, 'Progress:', order.progress);
 
-  // Create payment milestone record
+  // IMPORTANT: With manual capture, payment_intent.succeeded means AUTHORIZED, not captured
+  // We must explicitly capture the 10% portion now
+  const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+  try {
+    const captureAmount = Math.round(acceptedAmount * 100); // Convert to cents
+    const capturedPayment = await stripe.paymentIntents.capture(id, {
+      amount_to_capture: captureAmount
+    });
+    console.log('[Webhook] Successfully captured 10% ($', acceptedAmount.toFixed(2), ') - Capture ID:', capturedPayment.id);
+  } catch (captureError) {
+    console.error('[Webhook] Failed to capture 10% payment:', captureError.message);
+    // Update order to reflect capture failure
+    order.paymentStatus = 'capture_failed';
+    order.timeline.push({
+      event: 'Capture Failed',
+      description: `Failed to capture 10% payment: ${captureError.message}`,
+      timestamp: new Date(),
+      actor: 'system'
+    });
+    await order.save();
+    return { success: false, message: 'Capture failed' };
+  }
+
+  // Create payment milestone record for accepted stage (10%)
   const milestone = new PaymentMilestone({
     orderId: order._id,
-    stage: 'in_escrow',
-    percentageOfTotal: 100,
-    amount: amount_received / 100,
+    stage: 'accepted',
+    percentageOfTotal: 10,
+    amount: acceptedAmount,
     currency: order.currency || 'USD',
     stripePaymentIntentId: id,
-    paymentStatus: 'held_in_escrow',
+    paymentStatus: 'captured',
     capturedAt: new Date(),
     triggeredBy: {
       role: 'system',
@@ -196,10 +257,14 @@ const processOrderPayment = async (paymentIntent) => {
   });
   await milestone.save();
 
-  // Update order payment breakdown
+  // Update order payment breakdown with proper distribution
   order.paymentBreakdown = {
-    ...order.paymentBreakdown,
-    escrowAmount: amount_received / 100
+    authorizedAmount: acceptedAmount,     // 10% captured on accept
+    escrowAmount: escrowAmount,           // 50% will be captured when work starts
+    deliveryAmount: deliveryAmount,       // 20% on delivery
+    reviewAmount: reviewAmount,           // 20% on review
+    totalReleasedAmount: 0,
+    pendingReleaseAmount: acceptedAmount  // 10% pending release
   };
   await order.save();
 
@@ -210,22 +275,23 @@ const processOrderPayment = async (paymentIntent) => {
     Job.findById(order.gigId)
   ]);
 
-  // Add to seller's pending revenue
+  // Add only the accepted amount (10%) to seller's pending revenue
   if (seller) {
     const { getSellerPayout } = require('../services/priceUtil');
-    const netEarnings = getSellerPayout(order.price);
+    // Calculate seller's net from the 10% accepted amount
+    const sellerNetFromAccepted = getSellerPayout(acceptedAmount);
     
     seller.revenue = seller.revenue || { total: 0, pending: 0, available: 0, withdrawn: 0 };
-    seller.revenue.total += netEarnings;
-    seller.revenue.pending += netEarnings;
+    seller.revenue.total += sellerNetFromAccepted;
+    seller.revenue.pending += sellerNetFromAccepted;
     await seller.save();
 
     // Also update Freelancer record
     const freelancer = await Freelancer.findOne({ userId: order.sellerId });
     if (freelancer) {
       freelancer.revenue = freelancer.revenue || { total: 0, pending: 0, available: 0, withdrawn: 0, inTransit: 0 };
-      freelancer.revenue.total += netEarnings;
-      freelancer.revenue.pending += netEarnings;
+      freelancer.revenue.total += sellerNetFromAccepted;
+      freelancer.revenue.pending += sellerNetFromAccepted;
       await freelancer.save();
     }
 
@@ -322,6 +388,32 @@ const processPromotionPayment = async (paymentIntent) => {
 
   await promotionPurchase.save();
   console.log('[Webhook] Promotion purchase saved successfully:', promotionPurchase._id);
+
+  // Send promotion confirmation email
+  const { sendPromotionPlanEmail, sendAllGigsPromotionEmail } = require('../services/emailService');
+  try {
+    if (paymentType === 'gig_promotion' && gigId) {
+      const gig = await Job.findById(gigId);
+      if (gig) {
+        await sendPromotionPlanEmail(user.email, {
+          userName: user.fullName || user.username,
+          planName: plan.name,
+          gigTitle: gig.title,
+          duration: plan.durationDays,
+          expiresAt: expiresAt
+        });
+      }
+    } else if (paymentType === 'monthly_promotion') {
+      await sendAllGigsPromotionEmail(user.email, {
+        userName: user.fullName || user.username,
+        planName: plan.name,
+        duration: plan.durationDays,
+        expiresAt: expiresAt
+      });
+    }
+  } catch (emailError) {
+    console.error('[Webhook] Failed to send promotion email:', emailError);
+  }
 
   // Notify user
   await notificationService.createNotification({

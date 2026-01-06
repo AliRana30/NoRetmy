@@ -53,6 +53,8 @@ const GigDetailsSection: React.FC<GigDetailsSectionProps> = ({ id }) => {
           sales: gig?.sales,
           sellerBadge: seller?.sellerLevel?.label || null,
           sellerLevel: seller?.sellerLevel || null,
+          successScore: seller?.successScore ?? null,
+          completionRate: seller?.completionRate ?? null,
         });
 
         // Setup Pricing Plans

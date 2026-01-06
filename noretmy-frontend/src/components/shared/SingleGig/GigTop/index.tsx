@@ -19,6 +19,8 @@ interface GigTopProps {
   category: string;
   upgradeOption: string;
   sales: number;
+  successScore?: number | null;
+  completionRate?: number | null;
   sellerBadge?: string;
   sellerLevel?: {
     level: 'new' | 'level_1' | 'level_2' | 'top_rated';
@@ -36,6 +38,8 @@ const GigTop: React.FC<GigTopProps> = ({
   images,
   category,
   sales,
+  successScore,
+  completionRate,
   sellerBadge,
   sellerLevel,
   onContactSeller,
@@ -179,6 +183,20 @@ const GigTop: React.FC<GigTopProps> = ({
               <div className="text-center">
                 <p className="text-2xl font-bold text-slate-900">{sales || 0}</p>
                 <p className="text-sm text-slate-500">Sales</p>
+              </div>
+              <div className="w-px h-10 bg-slate-200"></div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-slate-900">
+                  {typeof successScore === 'number' ? `${Math.round(successScore)}%` : 'N/A'}
+                </p>
+                <p className="text-sm text-slate-500">Success Score</p>
+              </div>
+              <div className="w-px h-10 bg-slate-200"></div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-slate-900">
+                  {typeof completionRate === 'number' ? `${Math.round(completionRate)}%` : 'N/A'}
+                </p>
+                <p className="text-sm text-slate-500">Completion Rate</p>
               </div>
             </div>
 

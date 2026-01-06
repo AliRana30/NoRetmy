@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import axios from 'axios';
 import { CreditCard, Lock, ShieldCheck, AlertCircle, Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 const CARD_ELEMENT_OPTIONS = {
   style: {
@@ -37,11 +38,13 @@ const PaymentForm: React.FC<{ paymentType: string; orderData: any }> = ({
 }) => {
   const stripe = useStripe();
   const elements = useElements();
+  const router = useRouter();
   const [isProcessing, setIsProcessing] = useState(false);
   const [isLoadingBreakdown, setIsLoadingBreakdown] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [priceBreakdown, setPriceBreakdown] = useState<PriceBreakdown | null>(null);
+  const [createdOrderId, setCreatedOrderId] = useState<string | null>(orderData?.orderId ?? null);
   const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL;
 
   const [fetchedPrice, setFetchedPrice] = useState<number | null>(null);
@@ -177,6 +180,11 @@ const PaymentForm: React.FC<{ paymentType: string; orderData: any }> = ({
       const response = await axios.post(url, data, { withCredentials: true });
       const clientSecret = response.data.client_secret;
 
+      const maybeOrderId = response.data?.order?._id;
+      if (maybeOrderId && !createdOrderId) {
+        setCreatedOrderId(maybeOrderId);
+      }
+
       if (!clientSecret) {
         setError('Payment initialization failed. Please try again.');
         return { clientSecret: null };
@@ -245,10 +253,17 @@ const PaymentForm: React.FC<{ paymentType: string; orderData: any }> = ({
               </p>
               <div className="border-t border-gray-200 dark:border-gray-700 w-full pt-5 mt-2">
                 <button
-                  onClick={() => (window.location.href = paymentType === 'order_payment' ? '/orders' : '/promote-gigs')}
+                  onClick={() => {
+                    if (paymentType === 'order_payment') {
+                      const id = createdOrderId || orderData?.orderId;
+                      router.push(id ? `/orders/${id}` : '/orders');
+                      return;
+                    }
+                    router.push('/promote-gigs');
+                  }}
                   className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all"
                 >
-                  {paymentType === 'order_payment' ? 'View Your Orders' : 'View Your Promotions'}
+                  {paymentType === 'order_payment' ? 'View Order Details' : 'View Your Promotions'}
                 </button>
               </div>
             </div>

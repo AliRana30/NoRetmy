@@ -39,7 +39,7 @@ const LanguageSwitcher: React.FC = () => {
           </SelectValue>
         </div>
       </SelectTrigger>
-      <SelectContent className="bg-white border border-gray-200 shadow-lg">
+      <SelectContent className="bg-white border border-gray-200 shadow-lg z-[70]">
         {languages.map((lang) => (
           <SelectItem
             key={lang.code}

@@ -9,6 +9,7 @@ import ProjectsPortfolioSection from '../portfolio';
 import ProfileReviews from './ProfileReviews';
 import ProfileOrders from './ProfileOrders';
 import ProfileSidebar from './ProfileSidebar';
+import ProfileEarnings from './ProfileEarnings';
 import { useUserRole } from '@/util/basic';
 import { useDispatch } from 'react-redux';
 import { updateProfilePicture } from '@/store/authSlice';
@@ -202,6 +203,12 @@ const ProfileSection = () => {
     skills: [],
     reviews: [],
     averageRating: 0,
+    revenue: {
+      total: 0,
+      available: 0,
+      pending: 0,
+      withdrawn: 0,
+    },
     isOnline: true,
   });
 
@@ -211,15 +218,24 @@ const ProfileSection = () => {
   const isSeller = useUserRole();
 
   const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+  const apiBase = (BASE_URL || '').replace(/\/$/, '');
+  const apiRoot = apiBase.endsWith('/api') ? apiBase : `${apiBase}/api`;
 
   // Fetch Profile Data
   const fetchProfileData = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${BASE_URL}/users/profile/seller`, {
+      const response = await axios.get(`${apiRoot}/users/profile/seller`, {
         withCredentials: true,
       });
-      setProfileData({ ...response.data, isOnline: true });
+      const payload = response?.data?.data || response?.data;
+      setProfileData((prev) => ({
+        ...prev,
+        ...(payload || {}),
+        reviews: Array.isArray(payload?.reviews) ? payload.reviews : prev.reviews,
+        revenue: payload?.revenue || prev.revenue,
+        isOnline: true,
+      }));
       setLoading(false);
     } catch (error) {
       console.error('Error fetching profile data:', error);
@@ -231,7 +247,7 @@ const ProfileSection = () => {
   const updateProfileData = async (updates: any) => {
     try {
       setSectionLoading(true);
-      const response = await axios.put(`${BASE_URL}/users/profile/`, updates, {
+      const response = await axios.put(`${apiRoot}/users/profile/`, updates, {
         withCredentials: true,
       });
       setProfileData((prev) => ({ ...prev, ...response.data }));
@@ -255,7 +271,7 @@ const ProfileSection = () => {
       const formData = new FormData();
       formData.append('images', file, fileName);
 
-      const response = await axios.post(`${BASE_URL}/upload`, formData, {
+      const response = await axios.post(`${apiRoot}/upload`, formData, {
         withCredentials: true,
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -403,7 +419,7 @@ const ProfileSection = () => {
               <DollarSign className="w-5 h-5 text-orange-500" />
               {t('profile:sections.earnings.title', 'Earnings')}
             </h2>
-            <EmptyState section="earnings" isSeller={isSeller} t={t} />
+            <ProfileEarnings revenue={profileData.revenue} />
           </div>
         );
 

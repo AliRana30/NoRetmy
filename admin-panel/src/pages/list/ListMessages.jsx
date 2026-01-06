@@ -1,7 +1,7 @@
 import Datatable from "../../components/datatable/Datatable";
 import { useState, useEffect, useContext } from "react";
   import { getNotifications, getNotificationColumns } from "../../datatablesource";
-  import { deleteNotification } from "../../utils/adminApi";
+  import { deleteNotification, markNotificationAsRead } from "../../utils/adminApi";
   import { useNavigate } from "react-router-dom";
   import { useLocalization } from "../../context/LocalizationContext.jsx";
   import { DarkModeContext } from "../../context/darkModeContext.jsx";
@@ -47,6 +47,17 @@ import { useState, useEffect, useContext } from "react";
     }
   };
 
+  const handleMarkRead = async (id) => {
+    try {
+      await markNotificationAsRead(id);
+      setData((prev) => prev.map((n) => (n._id === id ? { ...n, isRead: true } : n)));
+      toast.success('Notification marked as read');
+    } catch (err) {
+      console.error('Mark notification as read error:', err);
+      toast.error(err.message || 'Failed to mark as read');
+    }
+  };
+
   const actionColumn = [
     {
       field: "action",
@@ -54,6 +65,14 @@ import { useState, useEffect, useContext } from "react";
       width: 150,
       renderCell: (params) => (
         <div className="flex items-center gap-2">
+          {!params.row.isRead && (
+            <div
+              className="px-3 py-1 bg-orange-100 hover:bg-orange-200 text-orange-700 rounded-lg text-xs font-medium transition-all duration-200 cursor-pointer"
+              onClick={() => handleMarkRead(params.row._id)}
+            >
+              Mark read
+            </div>
+          )}
           {process.env.NODE_ENV !== 'production' && (
             <div 
               className="px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg text-xs font-medium transition-all duration-200 cursor-pointer"
@@ -116,7 +135,7 @@ import { useState, useEffect, useContext } from "react";
         <Datatable 
           data={data} 
           columns={getNotificationColumns(getTranslation).concat(actionColumn)} 
-          title="allNotifications" 
+          title="" 
           showAddButton={false}
         />
       )}

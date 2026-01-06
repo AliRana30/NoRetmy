@@ -162,6 +162,7 @@ const GigCard: React.FC<GigProps> = ({ gig, initialIsFavorite = false, onFavorit
   };
 
   const badgeDisplay = gig.sellerBadge ? getBadgeDisplayInfo(gig.sellerBadge.level) : null;
+  const showNewSellerBadge = !badgeDisplay;
 
   return (
     <Link href={`/gig/${gig._id}`} className="block group">
@@ -207,6 +208,15 @@ const GigCard: React.FC<GigProps> = ({ gig, initialIsFavorite = false, onFavorit
               <div className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full shadow-lg ${badgeDisplay.bgColor} ${badgeDisplay.textColor}`}>
                 <badgeDisplay.icon className="w-3.5 h-3.5" />
                 <span>{badgeDisplay.label}</span>
+              </div>
+            </div>
+          )}
+
+          {/* New Seller Badge (fallback) */}
+          {showNewSellerBadge && (
+            <div className="absolute bottom-3 left-3">
+              <div className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full shadow-lg bg-slate-900 text-white">
+                <span>New Seller</span>
               </div>
             </div>
           )}

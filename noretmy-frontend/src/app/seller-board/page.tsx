@@ -56,7 +56,8 @@ const SellerDashboard = () => {
   // Auth check
   const user = useSelector((state: any) => state?.auth?.user);
   const isLoggedIn = !!user;
-  const isSeller = user?.isSeller || false;
+  const userRole = String(user?.role || '').toLowerCase();
+  const isSeller = user?.isSeller === true || userRole === 'freelancer' || userRole === 'seller';
 
   const [dashboardData, setDashboardData] = useState<DashboardData>({
     totalOrders: 0,
@@ -89,6 +90,9 @@ const SellerDashboard = () => {
 
   const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL;
 
+  const apiBase = (BACKEND_URL || '').replace(/\/$/, '');
+  const apiRoot = apiBase.endsWith('/api') ? apiBase : `${apiBase}/api`;
+
   // Auth protection
   useEffect(() => {
     if (!isLoggedIn) {
@@ -120,7 +124,7 @@ const SellerDashboard = () => {
     const fetchSellerDetails = async () => {
       try {
         const response = await axios.get(
-          `${BACKEND_URL}/seller/stats`,
+          `${apiRoot}/seller/stats`,
           { withCredentials: true },
         );
 

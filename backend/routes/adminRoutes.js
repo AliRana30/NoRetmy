@@ -31,6 +31,8 @@ const {
   // Financial Management
   getFinancialOverview,
   getWithdrawalRequests,
+  getWithdrawalRequestDetail,
+  createWithdrawalRequestAdmin,
   approveWithdrawal,
   rejectWithdrawal,
   
@@ -138,6 +140,8 @@ router.delete('/orders/:orderId', ...requirePermission('order_management'), dele
 // ==================== FINANCIAL MANAGEMENT ====================
 router.get('/financial/overview', ...requirePermission('payment_management'), getFinancialOverview);
 router.get('/financial/withdrawals', ...requirePermission('payment_management'), getWithdrawalRequests);
+router.get('/financial/withdrawals/:withdrawalId', ...requirePermission('payment_management'), getWithdrawalRequestDetail);
+router.post('/financial/withdrawals', ...requirePermission('payment_management'), createWithdrawalRequestAdmin);
 router.put('/financial/withdrawals/:withdrawalId/approve', ...requirePermission('payment_management'), approveWithdrawal);
 router.put('/financial/withdrawals/:withdrawalId/reject', ...requirePermission('payment_management'), rejectWithdrawal);
 

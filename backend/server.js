@@ -47,12 +47,18 @@ const app = express();
 
 const allowedOrigins = [
   'http://localhost:8081', 
-  'https://noretmy-frontend.vercel.app',
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://localhost:5173',
   'https://www.noretmy.com',
   'https://www.api.noretmy.com',
+  'https://admin.noretmy.com',
   'https://noretmy.vercel.app',
   'https://noretmy-admin.vercel.app',
   'https://noretmy-admin-panel.vercel.app',
+  'https://noretmy-admin-panel-three.vercel.app',
+  'https://noretmy-admin-panel.vercel.app',
+  'https://noretmy-frontend.vercel.app'
 ];
 
 const corsOptions = {

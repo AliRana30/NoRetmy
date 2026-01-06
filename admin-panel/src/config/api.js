@@ -120,14 +120,20 @@ export const getAuthHeaders = () => {
   if (userData) {
     try {
       const parsedUser = JSON.parse(userData);
-      token = parsedUser.token || parsedUser.accessToken; // Check both potential fields
+      token =
+        parsedUser.token ||
+        parsedUser.accessToken ||
+        parsedUser?.data?.token ||
+        parsedUser?.data?.accessToken ||
+        parsedUser?.user?.token ||
+        parsedUser?.user?.accessToken;
     } catch (e) {
       console.error('Error parsing userData for token:', e);
     }
   }
 
   // Only add Authorization header if token exists and is a non-empty string
-  const authHeader = (token && typeof token === 'string' && token.length > 10) 
+  const authHeader = (token && typeof token === 'string' && token.trim().length > 0) 
     ? { 'Authorization': `Bearer ${token}` } 
     : {};
 

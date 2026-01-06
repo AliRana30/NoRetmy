@@ -35,6 +35,49 @@ const AdminUsersList = () => {
     loadUsers();
   }, []);
 
+  const normalizeUser = (u) => {
+    const statusText = (u?.status ?? u?.accountStatus ?? '').toString().toLowerCase();
+
+    const normalizeBool = (v) => {
+      if (typeof v === 'boolean') return v;
+      if (typeof v === 'string') return v.toLowerCase() === 'true';
+      return undefined;
+    };
+
+    const isVerifiedNormalized =
+      normalizeBool(u?.isVerified) ??
+      normalizeBool(u?.verified) ??
+      normalizeBool(u?.emailVerified) ??
+      (statusText === 'active' || statusText === 'verified');
+
+    const isBlockedNormalized =
+      normalizeBool(u?.isBlocked) ??
+      (statusText === 'blocked');
+
+    const id = u?._id || u?.id;
+
+    return {
+      ...u,
+      _id: id,
+      id: u?.id || id,
+      isVerified: !!isVerifiedNormalized,
+      isBlocked: !!isBlockedNormalized,
+      role: u?.role || (u?.isSeller ? 'freelancer' : 'client'),
+      status:
+        u?.status ||
+        (isBlockedNormalized ? 'blocked' : isVerifiedNormalized ? 'active' : 'unverified'),
+    };
+  };
+
+  const extractUsersArray = (response) => {
+    if (Array.isArray(response)) return response;
+    if (Array.isArray(response?.data)) return response.data;
+    if (Array.isArray(response?.data?.users)) return response.data.users;
+    if (Array.isArray(response?.users)) return response.users;
+    if (Array.isArray(response?.result)) return response.result;
+    return null;
+  };
+
   const loadUsers = async () => {
     try {
       setLoading(true);
@@ -43,17 +86,13 @@ const AdminUsersList = () => {
       // Try admin API first, fallback to regular fetch
       try {
         const response = await getAdminUsers({});
-        if (response?.data) {
-          setData(response.data);
-        } else if (Array.isArray(response)) {
-          // Handle case where response is directly an array
-          setData(response);
-        } else {
-          throw new Error('No data in response');
-        }
+        const usersArray = extractUsersArray(response);
+        if (!usersArray) throw new Error('No users array in response');
+        setData(usersArray.map(normalizeUser));
       } catch (adminErr) {
         const users = await fetchData();
-        setData(users);
+        const usersArray = extractUsersArray(users) || [];
+        setData(usersArray.map(normalizeUser));
       }
     } catch (err) {
       console.error("Error fetching users:", err);
