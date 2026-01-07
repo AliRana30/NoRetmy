@@ -104,6 +104,9 @@ app.use(cors(corsOptions));
 
 app.use('/api/webhook', webhookRoutes);
 
+// Payment routes MUST come before express.json() to allow raw body parsing for Stripe webhooks
+app.use('/api/payment', paymentRoutes);
+
 app.use(express.json());
 app.use(cookieParser());
 
@@ -150,7 +153,6 @@ app.use('/api/conversations', conversationRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/contact', contactRoutes);
-app.use('/api/payment', paymentRoutes);
 app.use('/api/seller', sellerRoutes);
 app.use('/api/vat', vatRoutes);
 app.use('/api/withdraw',withdrawRoutes );

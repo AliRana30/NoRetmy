@@ -19,9 +19,19 @@ const handleStripeWebhook = async (req, res) => {
   const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
   let event;
 
+  console.log('\n========== STRIPE WEBHOOK RECEIVED ==========');
+  console.log('Timestamp:', new Date().toISOString());
+  console.log('Signature present:', !!sig);
+  console.log('Endpoint secret configured:', !!endpointSecret);
+
   try {
     // Verify webhook signature
     event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
+    console.log('✅ Webhook signature verified');
+    console.log('Event type:', event.type);
+    console.log('Event ID:', event.id);
+    console.log('Payment Intent ID:', event.data.object.id);
+    console.log('Metadata:', JSON.stringify(event.data.object.metadata, null, 2));
     // Process event based on type
     const result = await processWebhookEvent(event);
     
@@ -174,7 +184,10 @@ const processOrderPayment = async (paymentIntent) => {
   const { id, amount_received, amount, payment_method, metadata } = paymentIntent;
   const { orderId, vatRate, discount } = metadata;
 
-  console.log('[Webhook] Processing order payment for PaymentIntent:', id);
+  console.log('\n========== PROCESSING ORDER PAYMENT ==========');
+  console.log('Payment Intent ID:', id);
+  console.log('Order ID from metadata:', orderId);
+  console.log('Amount:', (amount_received || amount) / 100);
 
   // Calculate milestone amounts based on total order amount
   // With manual capture, amount_received can be 0 at authorization time, so fall back to amount.
@@ -341,14 +354,21 @@ const processPromotionPayment = async (paymentIntent) => {
   const { userId, gigId, promotionPlan, vatRate, baseAmount, vatAmount, platformFee, paymentType } = metadata;
   const mongoose = require('mongoose');
 
-  console.log('[Webhook] Processing promotion payment:', { id, userId, gigId, promotionPlan, paymentType });
+  console.log('\n========== PROCESSING PROMOTION PAYMENT ==========');
+  console.log('Payment Intent ID:', id);
+  console.log('Payment Type:', paymentType);
+  console.log('User ID:', userId);
+  console.log('Gig ID:', gigId || 'N/A (all gigs)');
+  console.log('Promotion Plan:', promotionPlan);
+  console.log('Amount Received:', amount_received / 100);
 
   // Idempotency check
   const existingPurchase = await PromotionPurchase.findOne({ stripePaymentIntentId: id });
   if (existingPurchase) {
-    console.log('[Webhook] Promotion already processed:', id);
+    console.log('⚠️  Promotion already processed - skipping');
     return { success: true, message: 'Already processed' };
   }
+  console.log('✅ No duplicate found - proceeding with creation');
 
   const { PROMOTION_PLANS, getPlan } = require('../utils/promotionPlans');
   const plan = getPlan(promotionPlan);
@@ -387,7 +407,12 @@ const processPromotionPayment = async (paymentIntent) => {
   });
 
   await promotionPurchase.save();
-  console.log('[Webhook] Promotion purchase saved successfully:', promotionPurchase._id);
+  console.log('✅ PROMOTION SAVED TO DATABASE');
+  console.log('Promotion ID:', promotionPurchase._id);
+  console.log('User ID:', promotionPurchase.userId);
+  console.log('Plan:', promotionPurchase.planName);
+  console.log('Expires:', promotionPurchase.expiresAt);
+  console.log('Status:', promotionPurchase.status);
 
   // Send promotion confirmation email
   const { sendPromotionPlanEmail, sendAllGigsPromotionEmail } = require('../services/emailService');
