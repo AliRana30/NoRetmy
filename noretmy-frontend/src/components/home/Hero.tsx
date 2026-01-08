@@ -66,9 +66,7 @@ const Hero: React.FC = () => {
             >
               <span className="text-lg">{t('home:heroSection.findExpert') || 'Find Your Expert Now'}</span>
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              <div className="absolute -top-2 -right-2 bg-orange-400 text-white text-xs font-bold px-2 py-1 rounded-full animate-pulse">
-                {t('home:heroSection.freeBadge') || 'FREE'}
-              </div>
+             
             </Link>
 
             <Link

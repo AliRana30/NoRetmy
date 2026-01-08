@@ -76,7 +76,9 @@ const createReview = async (req, res, next) => {
  const getReviews=async(req,res,next)=>{
     try {
         
-        const reviews= await Review.find({gigId : req.params.id});
+        const reviews= await Review.find({gigId : req.params.id})
+          .populate('userId', 'fullName username profilePicture')
+          .exec();
         res.status(200).send(reviews);
     } catch (error) {
         next(error);

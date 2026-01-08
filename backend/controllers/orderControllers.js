@@ -169,14 +169,11 @@ const createOrder = async (req, res) => {
       sellerEarnings 
     } = vatBreakdown.breakdown || {};
 
-    const buyerId = (isMilestone || isCustomOrder) ? custom_BuyerId : userId;
-    const buyerEmail = (isMilestone || isCustomOrder) ? user.email : user.email;
-
     const newOrder = new Order({
       gigId: gigId,
       price: orderPrice,
-      baseAmount: orderPrice,
-      feeAndTax: platformFee + (vatAmount || 0),
+      baseAmount: orderPrice, // Explicitly set base amount
+      feeAndTax: platformFee + (vatAmount || 0), // Legacy field compatibility
       platformFee: platformFee,
       vatAmount: vatAmount || 0,
       vatRate: vatRate || 0,
@@ -195,9 +192,12 @@ const createOrder = async (req, res) => {
     const savedOrder = await newOrder.save();
     let client_secret = null;
 
+    const buyerId = (isMilestone || isCustomOrder) ? custom_BuyerId : userId;
+    const buyerEmail = (isMilestone || isCustomOrder) ? user.email : user.email;
+
     if (!isMilestone && !isCustomOrder) {
 
-      const rate = vatRate;
+      const rate = vatRate; // Use the one from breakdown
       const additionalData = { orderId: savedOrder._id.toString(), userId, vatRate: rate, discount: gig.discount };
 
       // Clear any old payment_intent to avoid conflicts
@@ -205,10 +205,12 @@ const createOrder = async (req, res) => {
       savedOrder.paymentStatus = 'pending';
       await savedOrder.save();
 
+      // Use the calculated totalAmount from VAT service
       const paymentIntentResponse = await createCustomerAndPaymentIntentUtil(newOrder.totalAmount, buyerEmail, "order_payment", additionalData);
       const { client_secret: secret, payment_intent } = paymentIntentResponse;
 
       savedOrder.payment_intent = payment_intent;
+      savedOrder.paymentIntentId = payment_intent; // Store for verification
       await savedOrder.save();
 
       client_secret = secret;
@@ -614,11 +616,11 @@ const deliverOrder = async (req, res) => {
           gigTitle: gig?.title || 'Your Order',
           sellerName: seller?.username || 'The freelancer',
           deliveryDescription
-        }).catch(err => {
-          console.error("Error sending order delivered email:", err);
-        });
-      }
-    } catch (notifError) {
+        }).catch(err => console.error("Error sending order delivered email:", err));
+    } 
+  }
+    catch (notifError) {
+      console.error("Error sending order delivered notification:", notifError);
       }
 
     res.status(200).json({ message: "Order delivered successfully", order });
@@ -896,8 +898,6 @@ const acceptOrder = async (req, res) => {
           isForSeller: true,
           completedAt: order.orderCompletionDate,
           deadlineMet: order.deadlineMet
-        }).catch(err => {
-          console.error("Error sending order completed email:", err);
         });
         console.log('✅ Order completed email sent to seller:', seller.email);
         
@@ -1018,18 +1018,19 @@ const getCustomerOrderRequests = async (req, res) => {
   try {
     const { userId } = req;
     const now = new Date();
-    const twentyFourHoursAgo = new Date(now.setHours(now.getHours() - 24));
+    // Extend from 24 hours to 30 days to avoid "disappearing" requests
+    const thirtyDaysAgo = new Date(now.setDate(now.getDate() - 30));
 
-    // Fetch orders based on the userId and within the last 24 hours, filtering by milestone or custom types
+    // Fetch orders based on the userId and within the last 30 days, filtering by milestone or custom types
     const orders = await Order.find({
       buyerId: userId,
-      createdAt: { $gte: twentyFourHoursAgo },
+      createdAt: { $gte: thirtyDaysAgo },
       isCompleted: false,
       $or: [{ type: "milestone" }, { type: "custom" }],
     });
 
     if (!orders || orders.length === 0) {
-      return res.status(404).json({ message: "No recent milestone or custom orders found." });
+      return res.status(200).json([]);
     }
 
     const response = await Promise.all(orders.map(async (order) => {
@@ -1044,7 +1045,7 @@ const getCustomerOrderRequests = async (req, res) => {
       }
 
       // Fetch user profile and provide fallback if not found
-      const userProfile = await UserProfile.findById(user._id);
+      const userProfile = await UserProfile.findOne({ userId: user._id });
       const sellerImage = userProfile && userProfile.profilePicture ? userProfile.profilePicture : 'https://via.placeholder.com/100';
 
       const baseOrder = {
@@ -2822,8 +2823,111 @@ const requestTimelineExtension = async (req, res) => {
   }
 };
 
+// Complete order after payment verification (LMS-style)
+const completeOrderAfterPayment = async (req, res) => {
+  try {
+    const { orderId, payment_intent_id } = req.body;
+    const { userId } = req;
+
+    if (!payment_intent_id) {
+      return res.status(400).json({ message: "Payment intent ID is required" });
+    }
+
+    // Verify payment with Stripe
+    const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+    const paymentIntent = await stripe.paymentIntents.retrieve(payment_intent_id);
+    
+    console.log('Payment Intent Status:', paymentIntent.status);
+    
+    // Accept both succeeded and requires_capture (which will be captured by frontend)
+    if (paymentIntent.status !== "succeeded" && paymentIntent.status !== "requires_capture") {
+      return res.status(400).json({ 
+        success: false,
+        message: "Payment not successful", 
+        status: paymentIntent.status 
+      });
+    }
+    
+    // If requires_capture, capture it now
+    if (paymentIntent.status === "requires_capture") {
+      console.log('Capturing payment intent...');
+      await stripe.paymentIntents.capture(payment_intent_id);
+      console.log('Payment captured successfully');
+    }
+
+    // Update order
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    // Update order status (LMS-style direct update)
+    order.isPaid = true;
+    order.paymentStatus = 'completed';
+    order.status = 'started';
+    order.isCompleted = true;
+    order.progress = 20;
+    order.statusHistory.push({ status: 'started', createdAt: Date.now() });
+    order.timeline.push({
+      event: 'Payment Confirmed',
+      description: 'Payment verified and order started',
+      timestamp: new Date(),
+      actor: 'system'
+    });
+
+    await order.save();
+
+    // Update seller revenue
+    const { getSellerPayout } = require('../services/priceUtil');
+    const seller = await User.findById(order.sellerId);
+    if (seller) {
+      const netEarnings = getSellerPayout(order.price);
+      seller.revenue.total += netEarnings;
+      seller.revenue.pending += netEarnings;
+      await seller.save();
+    }
+
+    // Send notification to admin about order payment
+    const notificationService = require('../services/notificationService');
+    const Admin = await User.findOne({ role: 'admin' }).sort({ createdAt: 1 });
+    if (Admin) {
+      const buyer = await User.findById(order.buyerId);
+      const platformFee = order.platformFee || (order.price * 0.05);
+      await notificationService.createNotification({
+        userId: Admin._id,
+        title: '💳 New Order Payment',
+        message: `${buyer?.username || 'A client'} paid $${order.price.toFixed(2)}. Platform fee: $${platformFee.toFixed(2)} for order #${order._id.toString().slice(-6)}`,
+        type: 'system',
+        link: `/admin/orders/${order._id}`
+      });
+      
+      // Emit socket event for real-time notification
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`user_${Admin._id}`).emit('notification', {
+          title: '💳 New Order Payment',
+          message: `${buyer?.username || 'A client'} paid $${order.price.toFixed(2)}`,
+          type: 'system',
+          link: `/admin/orders/${order._id}`
+        });
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Order completed successfully",
+      order
+    });
+
+  } catch (error) {
+    console.error('Error completing order:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
-  createOrder, getOrders, getUserOrders, getPaymentsSummary, getSingleOrderDetail, createOrderPaypal, captureOrder, confirmMilestoneOrCustomOrder, getCustomerOrderRequests, addOrderRequirement, startOrder, deliverOrder, requestRevision, acceptOrder, updateMilestoneStatus, updateOrders,
+  createOrder,
+  completeOrderAfterPayment, getOrders, getUserOrders, getPaymentsSummary, getSingleOrderDetail, createOrderPaypal, captureOrder, confirmMilestoneOrCustomOrder, getCustomerOrderRequests, addOrderRequirement, startOrder, deliverOrder, requestRevision, acceptOrder, updateMilestoneStatus, updateOrders,
   createOrderInvitation, getSellerInvitations, acceptInvitation, rejectInvitation, getBuyerInvitations,
   updateOrderProgress, completeOrderWithPayment, submitReview, getOrderTimeline, getActiveOrders,
   approveDelivery, approveProgress, requestTimelineExtension, advanceOrderStatus

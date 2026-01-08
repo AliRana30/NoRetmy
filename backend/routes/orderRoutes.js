@@ -4,6 +4,7 @@ const multer = require('multer');
 const { storage } = require('../config/cloudinaryConfig');
 const {  
   createOrder,
+  completeOrderAfterPayment,
   getOrders,
   getPaymentsSummary,
   getUserOrders,
@@ -42,6 +43,7 @@ const router = express.Router();
 /* ----------------- Order Routes ----------------- */
 // Create a new order
 router.post('/', verifyToken, createOrder);
+router.post('/complete-payment', verifyToken, completeOrderAfterPayment); // LMS-style payment verification
 router.post('/confirm', verifyToken, confirmMilestoneOrCustomOrder);
 router.post('/milestone', verifyToken, updateMilestoneStatus);
 
@@ -72,8 +74,8 @@ router.put("/approve-delivery", verifyToken, approveDelivery);
 router.put("/approve-progress", verifyToken, approveProgress);
 router.post("/advance-status", verifyToken, advanceOrderStatus);
 
-// Payment after completion
-router.post("/complete-payment", verifyToken, completeOrderWithPayment);
+// Payment after completion (milestone/after-delivery payment)
+router.post("/complete-payment-milestone", verifyToken, completeOrderWithPayment);
 
 // Review submission
 router.post("/review", verifyToken, submitReview);

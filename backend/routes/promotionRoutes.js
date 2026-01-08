@@ -1,7 +1,8 @@
 const express = require('express');
 const { 
   allJobsPromotionMonthlySubscription, 
-  singleJobPromotionMonthlySubscriptionController, 
+  singleJobPromotionMonthlySubscriptionController,
+  completePromotionAfterPayment,
   getUserGigPromotions,
   checkGigActivePromotion,
   getUserActivePromotions,
@@ -36,6 +37,9 @@ router.post("/monthly", verifyToken, checkRole(["seller"]), allJobsPromotionMont
 
 // Purchase single-gig promotion (monthly subscription)
 router.post("/gig/monthly", verifyToken, checkRole(["seller"]), singleJobPromotionMonthlySubscriptionController);
+
+// Complete promotion after payment (LMS-style verification)
+router.post("/complete-payment", verifyToken, checkRole(["seller"]), completePromotionAfterPayment);
 
 // Get promotion purchase history (from PromotionPurchase - single source of truth)
 router.get("/history", verifyToken, checkRole(["seller"]), getPromotionHistory);

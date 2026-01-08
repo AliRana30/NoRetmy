@@ -167,7 +167,7 @@ const getDashboardStats = async (req, res) => {
       overallRevenueRes
     ] = await Promise.all([
       Order.aggregate([
-        { $match: { status: 'completed', createdAt: { $gte: today } } },
+        { $match: { status: 'completed', orderCompletionDate: { $gte: today } } },
         { 
           $group: { 
             _id: null, 
@@ -184,7 +184,7 @@ const getDashboardStats = async (req, res) => {
         }
       ]),
       Order.aggregate([
-        { $match: { status: 'completed', createdAt: { $gte: startOfWeek } } },
+        { $match: { status: 'completed', orderCompletionDate: { $gte: startOfWeek } } },
         { 
           $group: { 
             _id: null, 
@@ -201,7 +201,7 @@ const getDashboardStats = async (req, res) => {
         }
       ]),
       Order.aggregate([
-        { $match: { status: 'completed', createdAt: { $gte: startOfMonth } } },
+        { $match: { status: 'completed', orderCompletionDate: { $gte: startOfMonth } } },
         { 
           $group: { 
             _id: null, 

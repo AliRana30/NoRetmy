@@ -264,10 +264,26 @@ const notifyWithdrawalRequestSubmitted = async (adminIds, freelancerId, amount, 
     title: '💸 New Withdrawal Request',
     message: `A freelancer has requested to withdraw $${amount}. Please review.`,
     type: 'withdrawal',
-    data: { freelancerId, amount, requestId }
+    data: { freelancerId, amount, requestId },
+    link: `/admin/withdrawals/${requestId}`
   }));
   
-  return createBulkNotifications(notifications);
+  const createdNotifications = await createBulkNotifications(notifications);
+  
+  // Emit socket events to all admins
+  const io = global.io;
+  if (io) {
+    adminIds.forEach((adminId) => {
+      io.to(`user_${adminId}`).emit('notification', {
+        title: '💸 New Withdrawal Request',
+        message: `A freelancer has requested to withdraw $${amount}. Please review.`,
+        type: 'withdrawal',
+        link: `/admin/withdrawals/${requestId}`
+      });
+    });
+  }
+  
+  return createdNotifications;
 };
 
 /**

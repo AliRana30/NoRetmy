@@ -122,7 +122,10 @@ const sendEmailWithLogging = async (options) => {
     }
   }
 
-  return { success: false, error: lastError?.message || 'Failed after multiple attempts' };
+  // If all retries failed, throw error
+  const errorMessage = lastError?.message || 'Failed to send email after multiple attempts';
+  console.error(`❌ Email sending failed permanently: ${errorMessage}`);
+  throw new Error(errorMessage);
 };
 
 const sendVerificationEmail = async (email, token) => {
@@ -165,6 +168,205 @@ const sendVerificationEmail = async (email, token) => {
     html: emailBody,
     emailType: 'verification',
     metadata: { token }
+  });
+};
+
+// Send welcome email after successful signup and verification
+const sendWelcomeEmail = async (email, fullName, isSeller) => {
+  const firstName = fullName.split(' ')[0];
+  const userRole = isSeller ? 'freelancer' : 'client';
+  const emailSubject = 'Welcome to Noretmy!';
+  
+  const emailBody = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+          body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6; 
+            color: #2d3748; 
+            background-color: #f7fafc; 
+            margin: 0; 
+            padding: 0; 
+          }
+          .container { 
+            max-width: 600px; 
+            margin: 40px auto; 
+            background-color: #ffffff; 
+            border-radius: 12px; 
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+          }
+          .header { 
+            background: linear-gradient(135deg, #ea581e 0%, #f97316 100%);
+            padding: 40px 30px; 
+            text-align: center; 
+          }
+          .header h1 { 
+            font-size: 32px; 
+            font-weight: 700; 
+            margin: 0; 
+            color: #ffffff; 
+            letter-spacing: 1px; 
+          }
+          .content { 
+            padding: 40px 30px; 
+          }
+          .content h2 { 
+            font-size: 24px; 
+            font-weight: 600; 
+            color: #1a202c; 
+            margin: 0 0 20px 0; 
+          }
+          .content p { 
+            font-size: 16px; 
+            color: #4a5568; 
+            margin: 0 0 16px 0; 
+          }
+          .feature-list { 
+            background-color: #f7fafc; 
+            border-radius: 8px; 
+            padding: 24px; 
+            margin: 30px 0; 
+          }
+          .feature-item { 
+            padding: 12px 0; 
+            border-bottom: 1px solid #e2e8f0; 
+          }
+          .feature-item:last-child { 
+            border-bottom: none; 
+          }
+          .feature-title { 
+            font-weight: 600; 
+            color: #2d3748; 
+            margin-bottom: 4px; 
+          }
+          .feature-desc { 
+            font-size: 14px; 
+            color: #718096; 
+          }
+          .cta-button { 
+            display: inline-block; 
+            padding: 14px 32px; 
+            margin: 24px 0; 
+            font-size: 16px; 
+            font-weight: 600; 
+            color: #ffffff; 
+            background-color: #ea581e; 
+            text-decoration: none; 
+            border-radius: 6px; 
+            transition: background-color 0.3s;
+          }
+          .footer { 
+            background-color: #f7fafc; 
+            padding: 30px; 
+            text-align: center; 
+            border-top: 1px solid #e2e8f0; 
+          }
+          .footer p { 
+            font-size: 14px; 
+            color: #718096; 
+            margin: 8px 0; 
+          }
+          .footer a { 
+            color: #ea581e; 
+            text-decoration: none; 
+          }
+          .divider { 
+            height: 1px; 
+            background-color: #e2e8f0; 
+            margin: 24px 0; 
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>noretmy</h1>
+          </div>
+          
+          <div class="content">
+            <h2>Welcome, ${firstName}!</h2>
+            <p>Thank you for joining Noretmy, the trusted platform connecting talented freelancers with clients worldwide.</p>
+            
+            <p>Your account has been successfully created${isSeller ? ' as a freelancer' : ''}. You now have access to a comprehensive platform designed to make ${isSeller ? 'selling your services' : 'hiring top talent'} seamless and secure.</p>
+            
+            <div class="feature-list">
+              <div class="feature-title">Here's what you can do next:</div>
+              <div class="divider"></div>
+              
+              ${isSeller ? `
+              <div class="feature-item">
+                <div class="feature-title">Create Your First Gig</div>
+                <div class="feature-desc">Showcase your skills and start attracting clients</div>
+              </div>
+              <div class="feature-item">
+                <div class="feature-title">Set Up Your Profile</div>
+                <div class="feature-desc">Add your portfolio, skills, and experience</div>
+              </div>
+              <div class="feature-item">
+                <div class="feature-title">Promote Your Services</div>
+                <div class="feature-desc">Use our promotion tools to increase visibility</div>
+              </div>
+              <div class="feature-item">
+                <div class="feature-title">Secure Payments</div>
+                <div class="feature-desc">Get paid safely with our milestone-based escrow system</div>
+              </div>
+              ` : `
+              <div class="feature-item">
+                <div class="feature-title">Browse Services</div>
+                <div class="feature-desc">Explore thousands of gigs from talented freelancers</div>
+              </div>
+              <div class="feature-item">
+                <div class="feature-title">Post Custom Requests</div>
+                <div class="feature-desc">Let freelancers come to you with proposals</div>
+              </div>
+              <div class="feature-item">
+                <div class="feature-title">Payment Protection</div>
+                <div class="feature-desc">Your money is safe with milestone-based escrow</div>
+              </div>
+              <div class="feature-item">
+                <div class="feature-title">24/7 Support</div>
+                <div class="feature-desc">Our team is here to help whenever you need us</div>
+              </div>
+              `}
+            </div>
+            
+            <p>Ready to get started? Click the button below to complete your profile and ${isSeller ? 'create your first gig' : 'find the perfect freelancer'}.</p>
+            
+            <center>
+              <a href="https://noretmy.com/${isSeller ? 'dashboard' : 'search-gigs'}" class="cta-button">Get Started</a>
+            </center>
+            
+            <div class="divider"></div>
+            
+            <p style="font-size: 14px; color: #718096;">If you have any questions or need assistance, feel free to reach out to our support team at <a href="mailto:support@noretmy.com" style="color: #ea581e;">support@noretmy.com</a></p>
+          </div>
+          
+          <div class="footer">
+            <p><strong>Noretmy</strong> - Connecting Talent with Opportunity</p>
+            <p>&copy; 2026 Noretmy. All rights reserved.</p>
+            <p>
+              <a href="https://www.noretmy.com">Visit Website</a> | 
+              <a href="https://www.noretmy.com/help">Help Center</a> | 
+              <a href="https://www.noretmy.com/terms">Terms</a>
+            </p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+
+  return sendEmailWithLogging({
+    to: email,
+    subject: emailSubject,
+    html: emailBody,
+    emailType: 'welcome',
+    recipientName: fullName,
+    metadata: { userRole }
   });
 };
 
@@ -2024,6 +2226,7 @@ module.exports = {
   
   // Authentication emails
   sendVerificationEmail,
+  sendWelcomeEmail,
   sendResetPasswordEmail,
   
   // User notification emails

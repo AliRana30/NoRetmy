@@ -612,9 +612,221 @@ const getPromotionPlans = async (req, res) => {
   }
 };
 
+/**
+ * Complete promotion after payment verification (LMS-style)
+ * Frontend calls this after Stripe confirms payment
+ */
+const completePromotionAfterPayment = async (req, res) => {
+  try {
+    console.log('🔵 Promotion completion request received');
+    console.log('Request body:', req.body);
+    console.log('User ID:', req.userId);
+    
+    const { payment_intent_id, promotionPlan, gigId, paymentType } = req.body;
+    const { userId } = req;
+
+    if (!payment_intent_id) {
+      console.error('❌ Missing payment intent ID');
+      return res.status(400).json({ success: false, message: "Payment intent ID is required" });
+    }
+
+    if (!promotionPlan) {
+      console.error('❌ Missing promotion plan');
+      return res.status(400).json({ success: false, message: "Promotion plan is required" });
+    }
+
+    console.log('🔵 Verifying payment with Stripe...');
+    // Verify payment with Stripe
+    const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+    const paymentIntent = await stripe.paymentIntents.retrieve(payment_intent_id);
+    
+    console.log('Payment status:', paymentIntent.status);
+    
+    // Accept both succeeded and requires_capture (which will be captured by frontend)
+    if (paymentIntent.status !== "succeeded" && paymentIntent.status !== "requires_capture") {
+      console.error('❌ Payment not successful:', paymentIntent.status);
+      return res.status(400).json({ 
+        success: false, 
+        message: "Payment not successful", 
+        status: paymentIntent.status 
+      });
+    }
+    
+    // If requires_capture, capture it now
+    if (paymentIntent.status === "requires_capture") {
+      console.log('🔵 Capturing payment intent...');
+      await stripe.paymentIntents.capture(payment_intent_id);
+      console.log('✅ Payment captured successfully');
+    }
+
+    const { PROMOTION_PLANS, getPlan } = require('../utils/promotionPlans');
+    const mongoose = require('mongoose');
+
+    // Check if already processed
+    const existingPurchase = await PromotionPurchase.findOne({ stripePaymentIntentId: payment_intent_id });
+    if (existingPurchase) {
+      return res.status(200).json({ 
+        success: true, 
+        message: 'Promotion already activated',
+        promotion: existingPurchase 
+      });
+    }
+
+    console.log('🔵 Getting promotion plan:', promotionPlan);
+    const plan = getPlan(promotionPlan);
+    if (!plan) {
+      console.error('❌ Invalid promotion plan:', promotionPlan);
+      return res.status(400).json({ success: false, message: "Invalid promotion plan" });
+    }
+
+    console.log('🔵 Fetching user:', userId);
+    const user = await User.findById(userId);
+    if (!user) {
+      console.error('❌ User not found:', userId);
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    // Check if user has an active promotion of same type
+    const now = new Date();
+    const existingActivePromotion = await PromotionPurchase.findOne({
+      userId: new mongoose.Types.ObjectId(userId),
+      status: 'active',
+      expiresAt: { $gt: now },
+      promotionType: paymentType === 'gig_promotion' ? 'single_gig' : 'all_gigs',
+      ...(gigId && { gigId: new mongoose.Types.ObjectId(gigId) })
+    });
+
+    if (existingActivePromotion) {
+      console.log('❌ User already has active promotion:', existingActivePromotion._id);
+      return res.status(400).json({ 
+        success: false, 
+        message: "You already have an active promotion. Please wait until it expires.",
+        expiresAt: existingActivePromotion.expiresAt
+      });
+    }
+
+    const expiresAt = new Date(now.getTime() + plan.durationDays * 24 * 60 * 60 * 1000);
+
+    // Extract metadata from payment intent
+    const metadata = paymentIntent.metadata;
+
+    // Create promotion purchase record
+    const promotionPurchase = new PromotionPurchase({
+      stripePaymentIntentId: payment_intent_id,
+      userId: new mongoose.Types.ObjectId(userId),
+      planKey: plan.key,
+      planName: plan.name,
+      planPriority: plan.priority,
+      promotionType: paymentType === 'gig_promotion' ? 'single_gig' : 'all_gigs',
+      gigId: gigId ? new mongoose.Types.ObjectId(gigId) : null,
+      status: 'active',
+      purchasedAt: now,
+      activatedAt: now,
+      expiresAt: expiresAt,
+      baseAmount: parseFloat(metadata.baseAmount || plan.price),
+      vatRate: parseFloat(metadata.vatRate || 0),
+      vatAmount: parseFloat(metadata.vatAmount || 0),
+      platformFee: parseFloat(metadata.platformFee || 0),
+      totalAmount: paymentIntent.amount / 100,
+      durationDays: plan.durationDays
+    });
+
+    await promotionPurchase.save();
+    console.log('✅ Promotion saved:', promotionPurchase._id);
+
+    // If single gig promotion, update the gig's promotion status
+    if (gigId && paymentType === 'gig_promotion') {
+      const Job = require('../models/Job');
+      await Job.findByIdAndUpdate(gigId, {
+        isPromoted: true,
+        promotedAt: now,
+        promotionExpiresAt: expiresAt,
+        promotionPlan: plan.key,
+        promotionPriority: plan.priority
+      });
+      console.log('✅ Gig promoted:', gigId);
+    }
+
+    // If all gigs promotion, update all user's gigs
+    if (paymentType === 'monthly_promotion') {
+      const Job = require('../models/Job');
+      await Job.updateMany(
+        { sellerId: userId },
+        {
+          $set: {
+            isPromoted: true,
+            promotedAt: now,
+            promotionExpiresAt: expiresAt,
+            promotionPlan: plan.key,
+            promotionPriority: plan.priority
+          }
+        }
+      );
+      console.log('✅ All user gigs promoted');
+    }
+
+    // Update admin revenue from platform fee
+    if (metadata.platformFee && parseFloat(metadata.platformFee) > 0) {
+      const Admin = await User.findOne({ role: 'admin' }).sort({ createdAt: 1 });
+      if (Admin) {
+        const platformFeeAmount = parseFloat(metadata.platformFee);
+        Admin.revenue = Admin.revenue || { total: 0, available: 0, pending: 0, withdrawn: 0 };
+        Admin.revenue.total = (Admin.revenue.total || 0) + platformFeeAmount;
+        Admin.revenue.available = (Admin.revenue.available || 0) + platformFeeAmount;
+        await Admin.save();
+        console.log('✅ Admin revenue updated:', platformFeeAmount);
+      }
+    }
+
+    // Send notification to user
+    const notificationService = require('../services/notificationService');
+    await notificationService.createNotification({
+      userId: user._id,
+      title: '🚀 Promotion Activated',
+      message: `Your "${plan.name}" promotion is now active!`,
+      type: 'payment',
+      link: '/promote-gigs'
+    });
+
+    // Send notification to admin
+    const Admin = await User.findOne({ role: 'admin' }).sort({ createdAt: 1 });
+    if (Admin) {
+      await notificationService.createNotification({
+        userId: Admin._id,
+        title: '💰 New Promotion Purchase',
+        message: `${user.username || user.fullName} purchased ${plan.name} promotion ($${(paymentIntent.amount / 100).toFixed(2)})`,
+        type: 'system',
+        link: `/admin/promotions`
+      });
+      
+      // Emit socket event for real-time notification
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`user_${Admin._id}`).emit('notification', {
+          title: '💰 New Promotion Purchase',
+          message: `${user.username || user.fullName} purchased ${plan.name}`,
+          type: 'system',
+          link: `/admin/promotions`
+        });
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Promotion activated successfully",
+      promotion: promotionPurchase
+    });
+
+  } catch (error) {
+    console.error('❌ Error completing promotion:', error);
+    res.status(500).json({ success: false, message: error.message || 'Internal server error' });
+  }
+};
+
 module.exports = { 
   allJobsPromotionMonthlySubscription,
   singleJobPromotionMonthlySubscriptionController,
+  completePromotionAfterPayment,
   getUserGigPromotions,
   checkGigActivePromotion,
   getUserActivePromotions,

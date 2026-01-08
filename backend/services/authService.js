@@ -120,48 +120,76 @@ const signUp = async (email, password, fullName, username, isSeller, isCompany, 
 
     await userProfile.save();
 
+    // Send notification to admin about new signup
+    try {
+      const notificationService = require('./notificationService');
+      const Admin = await User.findOne({ role: 'admin' }).sort({ createdAt: 1 });
+      if (Admin) {
+        await notificationService.createNotification({
+          userId: Admin._id,
+          title: '🆕 New User Registered',
+          message: `${fullName} (${email}) signed up as ${isSeller ? 'freelancer' : 'client'}`,
+          type: 'system',
+          link: `/admin/users`
+        });
+        
+        // Emit socket event for real-time notification
+        const io = global.io;
+        if (io) {
+          io.to(`user_${Admin._id}`).emit('notification', {
+            title: '🆕 New User Registered',
+            message: `${fullName} signed up as ${isSeller ? 'freelancer' : 'client'}`,
+            type: 'admin',
+            link: `/admin/users`
+          });
+        }
+      }
+    } catch (notifError) {
+      console.error('Failed to send admin notification:', notifError.message);
+    }
+
     // Send verification email with retry logic
     // Skip email in development if auto-verified
     if (process.env.NODE_ENV !== 'development' || !user.isVerified) {
-      const maxRetries = 3;
-      let emailSent = false;
-      
-      for (let attempt = 1; attempt <= maxRetries; attempt++) {
-        try {
-          console.log(`📧 Attempt ${attempt}/${maxRetries}: Sending verification email to ${user.email}`);
-          await sendVerificationEmail(user.email, token);
-          emailSent = true;
-          console.log(`✅ Verification email sent successfully to ${user.email}`);
-          break;
-        } catch (emailError) {
-          console.error(`❌ Email attempt ${attempt} failed:`, emailError.message);
-          if (attempt === maxRetries) {
-            console.error(`⚠️ All ${maxRetries} email attempts failed for ${user.email}`);
-            // Don't fail signup, just log the error
-          } else {
-            // Wait before retry (exponential backoff)
-            await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
-          }
-        }
-      }
+      try {
+        console.log(`📧 Sending verification email to ${user.email}`);
+        await sendVerificationEmail(user.email, token);
+        console.log(`✅ Verification email sent successfully to ${user.email}`);
 
-      return {
-        success: true,
-        code: 'SIGNUP_SUCCESS',
-        message: emailSent 
-          ? 'User registered successfully. Verification email sent.'
-          : 'User registered successfully, but email sending failed. Please request a new verification email.',
-        emailSent,
-        user: {
-          id: user._id,
-          email: user.email,
-          fullName: user.fullName,
-          username: user.username,
-          role: user.role,
-          isSeller: user.isSeller,
-          isCompany: user.isCompany,
-        },
-      };
+        return {
+          success: true,
+          code: 'SIGNUP_SUCCESS',
+          message: 'User registered successfully. Verification email sent.',
+          emailSent: true,
+          user: {
+            id: user._id,
+            email: user.email,
+            fullName: user.fullName,
+            username: user.username,
+            role: user.role,
+            isSeller: user.isSeller,
+            isCompany: user.isCompany,
+          },
+        };
+      } catch (emailError) {
+        console.error(`❌ Failed to send verification email:`, emailError.message);
+        // Don't fail signup, user can request resend
+        return {
+          success: true,
+          code: 'SIGNUP_SUCCESS',
+          message: 'User registered successfully, but email sending failed. Please request a new verification email.',
+          emailSent: false,
+          user: {
+            id: user._id,
+            email: user.email,
+            fullName: user.fullName,
+            username: user.username,
+            role: user.role,
+            isSeller: user.isSeller,
+            isCompany: user.isCompany,
+          },
+        };
+      }
     }
 
     return {
@@ -215,6 +243,16 @@ const verifyEmail = async (email, token) => {
   user.verificationToken = undefined;
   user.verificationTokenExpiry = undefined;
   await user.save();
+
+  // Send welcome email after successful verification
+  try {
+    const { sendWelcomeEmail } = require('./emailService');
+    await sendWelcomeEmail(user.email, user.fullName, user.isSeller);
+    console.log(`✅ Welcome email sent to ${user.email}`);
+  } catch (emailError) {
+    // Don't fail verification if welcome email fails
+    console.error('Failed to send welcome email:', emailError.message);
+  }
 };
 
 const signIn = async (email, password) => {
