@@ -1,6 +1,6 @@
 const User = require('../models/User');
 const crypto = require('crypto');
-const { sendVerificationEmail } = require('./emailService');
+const { sendVerificationEmail, sendWelcomeEmail } = require('./emailService');
 const UserProfile = require('../models/UserProfile');
 const { validatePassword } = require('../utils/passwordValidation');
 
@@ -163,16 +163,26 @@ const signUp = async (email, password, fullName, username, isSeller, isCompany, 
     }
 
     // Send verification email with retry logic.
-    // If running in development with auto-verified users, the email may be intentionally skipped.
-    const shouldSendVerificationEmail = process.env.NODE_ENV !== 'development' || !user.isVerified;
+    // In development with auto-verified users, send welcome email instead.
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    const isAutoVerified = user.isVerified;
 
-    if (!shouldSendVerificationEmail) {
-      console.log(`ℹ️ Skipping verification email (development auto-verify). email=${user.email}, isVerified=${user.isVerified}`);
+    if (isDevelopment && isAutoVerified) {
+      // In development, users are auto-verified, so send a welcome email instead
+      try {
+        console.log(`📧 Sending welcome email to ${user.email} (development mode - auto-verified)`);
+        await sendWelcomeEmail(user.email, user.fullName, user.isSeller);
+        console.log(`✅ Welcome email sent successfully to ${user.email}`);
+      } catch (emailError) {
+        console.error(`❌ Failed to send welcome email to ${user.email}:`, emailError.message);
+        // Don't fail signup if email fails
+      }
+      
       return {
         success: true,
         code: 'SIGNUP_SUCCESS',
-        message: 'User registered successfully. Account is auto-verified in development; no verification email was sent.',
-        emailSent: false,
+        message: 'User registered successfully. Welcome email sent.',
+        emailSent: true,
         user: {
           id: user._id,
           email: user.email,
